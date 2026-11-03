@@ -1,0 +1,25 @@
+{
+  "$schema": "https://schemas.macro-deck.app/plugin-manifest-v1.schema.json",
+  "manifestVersion": 1,
+  "id": "com.example.reaper-control",
+  "name": "REAPER Control",
+  "version": "0.8.1",
+  "description": "Runs REAPER actions, custom actions and ReaScripts directly through REAPER's web interface - no hotkeys, REAPER does not need focus.",
+  "publisher": { "name": "Christian Alpen" },
+  "compatibility": { "macroDeck": ">=3.0.0-0" },
+  "icon": "Assets/icon.svg",
+  "entrypoints": {
+    "win-x64": {
+      "executable": "runtimes/win-x64/ReaperControl.dll",
+      "runtime": { "kind": "FrameworkDependent", "dotnetVersion": "10.0" }
+    },
+    "osx-arm64": {
+      "executable": "runtimes/osx-arm64/ReaperControl.dll",
+      "runtime": { "kind": "FrameworkDependent", "dotnetVersion": "10.0" }
+    },
+    "osx-x64": {
+      "executable": "runtimes/osx-x64/ReaperControl.dll",
+      "runtime": { "kind": "FrameworkDependent", "dotnetVersion": "10.0" }
+    }
+  }
+}

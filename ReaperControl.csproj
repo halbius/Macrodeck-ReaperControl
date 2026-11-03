@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Macro Deck 3 plugin: a headless .NET 10 console process that Macro Deck starts and supervises.
+    Microsoft.NET.Sdk + the ASP.NET Core framework reference (not Microsoft.NET.Sdk.Web), as the
+    Macro Deck docs prescribe.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ReaperControl</RootNamespace>
+    <AssemblyName>ReaperControl</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+
+    <!-- Pinned to the newest preview at the time of writing. Bump all three together. -->
+    <PackageReference Include="MacroDeck.Plugin.Hosting" Version="3.0.0-beta.17" />
+    <PackageReference Include="MacroDeck.Plugin.Serilog" Version="3.0.0-beta.17" />
+    <PackageReference Include="MacroDeck.Plugin.Analyzers" Version="3.0.0-beta.17" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- The SDK reads manifest.json from the content root at startup and resolves the icon against it. -->
+  <ItemGroup>
+    <Content Include="manifest.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/icon.svg" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
