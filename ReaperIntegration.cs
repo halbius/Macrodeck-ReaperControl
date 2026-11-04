@@ -40,6 +40,8 @@ public sealed class ReaperIntegration : IPluginIntegration, IConfigFlowProvider
             new LoadRenderPresetAction(connection, loggerFactory.CreateLogger<LoadRenderPresetAction>()),
             new MarkerButtonAction(connection, markerMonitor, markerFilter, markerLogger),
             new MarkerFilterAction(markerFilter, markerMonitor),
+            new NextPreviousMarkerAction(connection, markerMonitor, markerFilter,
+                loggerFactory.CreateLogger<NextPreviousMarkerAction>()),
             new ItemRulerAction(connection, stateMonitor, loggerFactory.CreateLogger<ItemRulerAction>()),
             new TransportAction(connection, stateMonitor, loggerFactory.CreateLogger<TransportAction>()),
             // The fixed buttons - edit the list in Actions/FixedCommandAction.cs.
@@ -57,8 +59,9 @@ public sealed class ReaperIntegration : IPluginIntegration, IConfigFlowProvider
     public async Task InitializeAsync(IIntegrationContext context)
     {
         var settings = await LoadSettingsAsync(context.Config);
-        _connection.Configure(settings, context.Http);
+        _connection.Configure(settings, context.Http, context);
         _logger.LogInformation("REAPER target: {Uri}", settings.BaseUri);
+        _logger.LogInformation("Button icons: {Icons}", IconLibrary.Describe());
     }
 
     public Task ShutdownAsync()

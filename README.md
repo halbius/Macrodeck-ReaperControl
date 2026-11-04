@@ -2,7 +2,7 @@
 
 Steuert REAPER direkt über dessen Web-Interface (HTTP). Keine Tastaturkürzel, REAPER muss nicht im Fokus sein.
 
-**Stand 0.8.0:** Action „Run REAPER command“ mit Button-Status, feste Actions (Item ruler), Setup-Dialog mit Verbindungstest, Web-API-Client.
+**Stand 0.9.3:** Action „Run REAPER command“ mit Button-Status, feste Actions (Item ruler), Setup-Dialog mit Verbindungstest, Web-API-Client.
 
 > Gebaut gegen `MacroDeck.Plugin.Hosting 3.0.0-beta.17`. Das SDK ist Preview und ändert sich noch. Der Code wurde gegen den SDK-Quellcode geschrieben, aber noch **nicht kompiliert** – erster Schritt ist `dotnet build`.
 
@@ -48,7 +48,7 @@ macrodeck-plugin run --project ReaperControl.csproj
 
 # Paket für die Installation:
 macrodeck-plugin build --output ./artifacts
-macrodeck-plugin validate --artifact ./artifacts/com.example.reaper-control-0.8.0.macroDeckPlugin
+macrodeck-plugin validate --artifact ./artifacts/com.example.reaper-control-0.9.3.macroDeckPlugin
 ```
 
 Die `.macroDeckPlugin`-Datei wird per Drag & Drop in Macro Deck installiert. Nicht von Hand zippen.
@@ -99,7 +99,23 @@ Die erste Spalte (Action-ID) speichert Macro Deck in den Profilen: nach dem erst
 
 ## Transport
 
-Action **„Transport“** mit Auswahl *Command*: Play/Stop (40044), Repeat (1068), Stop at loop end (41834). Beschriftung = Befehlsname, leuchtet, solange die Action an ist (Spalte *State* der Action List). Weitere Befehle: eine Zeile in `Commands` in `Actions/TransportAction.cs`.
+Action **„Transport“** mit Auswahl *Command*: Play/Stop (40044), Play/Stop + Edit Cursor (40328), Pause (1008, leuchtet nur bei Pause), Repeat (1068), Stop at loop end (41834), Play, Skip Timeline Selection (40317). Beschriftung = Befehlsname, leuchtet, solange die Action an ist (Spalte *State* der Action List; Play/Stop: solange REAPER spielt). Weitere Befehle: eine Zeile in `Commands` in `Actions/TransportAction.cs`.
+
+### Icons
+
+Die Transport-Action liefert auch das Button-Icon. Beim Hinzufügen bietet Macro Deck an, Status **und** Icon zu übernehmen – beide Häkchen setzen.
+
+- Icons liegen als Dateien in `Assets/Icons` und werden über den Dateinamen ohne Endung angesprochen. **Nur PNG, JPEG, WebP oder GIF** – SVG lehnt Macro Deck für Plugin-Icons ab. Empfohlen: PNG, 256 × 256, weiß auf transparent. Mitgeliefert: `play`, `stop`, `pause`, `repeat`.
+- Gedimmte Variante für „aus“: eigene Datei `<name>-dim.png` (z. B. gleiches Bild mit 35 % Deckkraft). Fehlt sie, erscheint auch bei „aus“ das volle Icon.
+- Pro Befehl in `Commands`: `Icon:` = Icon für „aus“, optional `IconWhenOn:` = Icon für „an“. Ohne `IconWhenOn` erscheint bei „an“ `<name>.png`, bei „aus“ `<name>-dim.png`.
+- `Assets/IconSources` enthält die SVG-Vorlagen der mitgelieferten Icons (wird nicht ins Paket übernommen).
+
+```csharp
+new("record", "Record", "1013", Icon: "record"),                       // record.png / record-dim.png
+new("play-stop", "Play/Stop", "40044", Icon: "play", IconWhenOn: "stop"), // zwei Icons
+```
+
+Neues Icon: Datei nach `Assets/Icons` legen, Namen in die Zeile schreiben, Version erhöhen, neu bauen. Die mitgelieferten Icons sind schlichte eigene Formen und lassen sich durch eigene Dateien mit gleichem Namen ersetzen.
 
 ## Item ruler
 
@@ -140,11 +156,12 @@ Langer Tastendruck: In Macro Deck hat jeder Button eigene Abläufe für *Short P
 
 ## Marker
 
-Zwei Actions; beim Hinzufügen „Bereitgestellte Status verwenden“ bestätigen:
+Drei Actions; beim Hinzufügen „Bereitgestellte Status verwenden“ bestätigen:
 
 | Action | Einstellung | Verhalten |
 | --- | --- | --- |
 | **Go to marker** | Marker-ID / Slot, Schalter *Follow marker filter* und *Use marker color* (Standard: an) | Springt zum Marker, Beschriftung „Name“ und darunter „ID: n“. Mit *Follow marker filter* und aktivem Filter: der n-te passende Marker (zeitliche Reihenfolge) – für einen Folder mit Tasten 1, 2, 3, … |
+| **Go to next / previous marker** | Richtung, *Follow marker filter*, *Use marker color* | Springt zum nächsten Marker rechts bzw. vorherigen links vom Cursor. Beschriftung „Go to next“/„Go to previous“ und darunter der Markername, folgt dem Cursor. |
 | **Marker filter** | Text, „enthält“ / „beginnt mit“ | Aktiviert den Filter; erneuter Druck zeigt wieder alle. Immer nur ein Filter aktiv. Groß-/Kleinschreibung egal. |
 
 - Aktueller Marker (Play-/Edit-Cursor ab dem Marker bis zum nächsten): mit *Use marker color* in voller Markerfarbe, alle anderen abgedunkelt; ohne eigene Markerfarbe bzw. Schalter aus: aktueller Marker grün, die anderen dunkelgrau.

@@ -8,7 +8,19 @@ namespace ReaperControl.Reaper;
 /// <param name="Markers">Sorted by position.</param>
 /// <param name="Position">Play position while playing, edit cursor otherwise (seconds).</param>
 /// <param name="CurrentMarkerId">The last marker at or before <paramref name="Position" />, if any.</param>
-public sealed record MarkerSnapshot(IReadOnlyList<ReaperMarker> Markers, double Position, int? CurrentMarkerId);
+public sealed record MarkerSnapshot(IReadOnlyList<ReaperMarker> Markers, double Position, int? CurrentMarkerId)
+{
+    /// <summary>Tolerance for "the cursor stands exactly on a marker" (float positions).</summary>
+    public const double Tolerance = 0.0005;
+
+    /// <summary>First marker right of the cursor (matching <paramref name="filter" /> if given).</summary>
+    public ReaperMarker? Next(MarkerFilter? filter) =>
+        Markers.FirstOrDefault(m => m.Start > Position + Tolerance && (filter is null || filter.Matches(m)));
+
+    /// <summary>Last marker left of the cursor; a marker exactly at the cursor does not count.</summary>
+    public ReaperMarker? Previous(MarkerFilter? filter) =>
+        Markers.LastOrDefault(m => m.Start < Position - Tolerance && (filter is null || filter.Matches(m)));
+}
 
 /// <summary>How a filter text is compared with marker names (case-insensitive).</summary>
 public enum MarkerMatch
@@ -155,7 +167,10 @@ public sealed class MarkerMonitor(
         Volatile.Write(ref _snapshot, new MarkerSnapshot(markers, position, current));
 
         // Only what buttons show: names, ids, order and the current marker - not every cursor move.
-        var signature = string.Join('\u0001', markers.Select(m => $"{m.Id}\u0002{m.Name}")) + "\u0003" + current;
+        var snapshotNow = new MarkerSnapshot(markers, position, current);
+        var signature = string.Join('\u0001', markers.Select(m => $"{m.Id}\u0002{m.Name}\u0002{m.Color}"))
+                        + "\u0003" + current
+                        + "\u0003" + snapshotNow.Previous(null)?.Id + "/" + snapshotNow.Next(null)?.Id;
         if (signature != _signature)
         {
             logger.LogInformation("REAPER markers: {Count} markers (IDs {Ids}), current {Current}",

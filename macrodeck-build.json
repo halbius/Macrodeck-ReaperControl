@@ -55,6 +55,7 @@
   },
   "include": [
     "README.md",
-    "ReaperScripts"
+    "ReaperScripts",
+    "Assets/Icons"
   ]
 }

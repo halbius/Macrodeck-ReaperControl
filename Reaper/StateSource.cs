@@ -26,3 +26,17 @@ public sealed record ExtStateValue(string Section, string Name) : StateSource
     public override string Key => $"ext:{Section}/{Name}";
     public override string Request => $"GET/EXTSTATE/{Section}/{Name}";
 }
+
+/// <summary>"1" while REAPER plays or records (also paused), "0" while stopped - from the TRANSPORT reply.</summary>
+public sealed record TransportPlaying : StateSource
+{
+    public override string Key => "transport:playing";
+    public override string Request => "TRANSPORT";
+}
+
+/// <summary>"1" while REAPER is paused (also record-paused), "0" otherwise - from the TRANSPORT reply.</summary>
+public sealed record TransportPaused : StateSource
+{
+    public override string Key => "transport:paused";
+    public override string Request => "TRANSPORT";
+}

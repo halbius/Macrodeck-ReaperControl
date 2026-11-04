@@ -154,6 +154,8 @@ public sealed class CommandStateMonitor(
             // Brings Macro Deck's next state read forward for all of this plugin's action buttons
             // (no local id: several actions show states - "run-command" and the fixed ones).
             notifier.CatalogChanged("actions", reason: "reaper-state");
+            // Icons are polled separately; bring the read forward for actions with state-driven icons.
+            connection.InvalidateIcons(ReaperControl.Actions.TransportAction.ActionId);
         }
     }
 

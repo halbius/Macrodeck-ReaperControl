@@ -96,6 +96,13 @@ public static class ReaperResponseParser
                 case ExtStateValue e:
                     result[e.Key] = extByKey.GetValueOrDefault($"{e.Section}/{e.Name}", "");
                     break;
+                // play state: 0 stopped, 1 playing, 2 paused, 5 recording, 6 record paused
+                case TransportPlaying t when ParseTransport(reply) is { } transport:
+                    result[t.Key] = transport.PlayState is 1 or 5 ? "1" : "0";
+                    break;
+                case TransportPaused t when ParseTransport(reply) is { } transport:
+                    result[t.Key] = transport.PlayState is 2 or 6 ? "1" : "0";
+                    break;
             }
         }
 

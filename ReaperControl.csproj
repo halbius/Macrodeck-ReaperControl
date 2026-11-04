@@ -27,6 +27,8 @@
   <ItemGroup>
     <Content Include="manifest.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets/icon.svg" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Button icons (IconLibrary): every file in Assets/Icons goes into the package. -->
+    <Content Include="Assets/Icons/**" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
