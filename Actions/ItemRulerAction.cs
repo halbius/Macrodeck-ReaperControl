@@ -12,7 +12,7 @@ namespace ReaperControl.Actions;
 /// </summary>
 /// <remarks>
 /// A per-item setting (ITEMRULER in the item chunk), so the actions have no toggle state: the state
-/// comes from ReaperScripts/ReaperControl_ItemRulerState.lua via ExtState "ReaperControl"/"ItemRuler".
+/// comes from ReaperScripts/ReaperControl_ItemState.lua via ExtState "ReaperControl"/"ItemRuler".
 /// The ITEMRULER values do not follow the menu order - they were observed in REAPER.
 /// </remarks>
 public sealed class ItemRulerAction(
@@ -45,7 +45,7 @@ public sealed class ItemRulerAction(
 
     public LocalizedText Description =>
         "Sets the item ruler display of the selected items. Lit while the selected items use this mode " +
-        "(needs ReaperControl_ItemRulerState.lua running in REAPER).";
+        "(needs ReaperControl_ItemState.lua running in REAPER).";
 
     public IReadOnlyList<ActionParameter> Parameters { get; } =
     [

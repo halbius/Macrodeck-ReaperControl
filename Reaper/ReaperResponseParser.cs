@@ -2,7 +2,8 @@ using System.Globalization;
 
 namespace ReaperControl.Reaper;
 
-public sealed record TransportState(int PlayState, double PositionSeconds, bool Repeat, string PositionString);
+public sealed record TransportState(
+    int PlayState, double PositionSeconds, bool Repeat, string PositionString, string PositionBeats = "");
 
 public sealed record ReaperTrack(int Index, string Name, int Flags, double Volume, double Pan)
 {
@@ -25,7 +26,7 @@ public static class ReaperResponseParser
     public static TransportState? ParseTransport(string reply) =>
         Lines(reply, "TRANSPORT")
             .Where(f => f.Length >= 5)
-            .Select(f => new TransportState(Int(f[1]), Dbl(f[2]), f[3] == "1", f[4]))
+            .Select(f => new TransportState(Int(f[1]), Dbl(f[2]), f[3] == "1", f[4], f.Length >= 6 ? f[5] : ""))
             .FirstOrDefault();
 
     // TRACK \t index \t name \t flags \t volume \t pan \t …

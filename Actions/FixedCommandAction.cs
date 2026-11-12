@@ -31,6 +31,8 @@ public static class FixedCommands
         // One line per fixed button, e.g.:
         // new("transport-play-stop", "Transport: Play/Stop", "40044"),
         // The item ruler modes moved to the "Item ruler" action (Actions/ItemRulerAction.cs).
+        new("monitoring-fx-show-chain", "Monitoring FX - Show Chain", "41882"),
+        new("monitoring-fx-toggle-bypass", "Monitoring FX - Toggle Bypass", "41884"),
     ];
 }
 

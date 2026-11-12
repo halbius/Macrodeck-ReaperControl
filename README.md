@@ -2,7 +2,7 @@
 
 Steuert REAPER direkt über dessen Web-Interface (HTTP). Keine Tastaturkürzel, REAPER muss nicht im Fokus sein.
 
-**Stand 0.9.3:** Action „Run REAPER command“ mit Button-Status, feste Actions (Item ruler), Setup-Dialog mit Verbindungstest, Web-API-Client.
+**Stand 0.12.1:** Action „Run REAPER command“ mit Button-Status, feste Actions (Item ruler), Setup-Dialog mit Verbindungstest, Web-API-Client.
 
 > Gebaut gegen `MacroDeck.Plugin.Hosting 3.0.0-beta.17`. Das SDK ist Preview und ändert sich noch. Der Code wurde gegen den SDK-Quellcode geschrieben, aber noch **nicht kompiliert** – erster Schritt ist `dotnet build`.
 
@@ -48,7 +48,7 @@ macrodeck-plugin run --project ReaperControl.csproj
 
 # Paket für die Installation:
 macrodeck-plugin build --output ./artifacts
-macrodeck-plugin validate --artifact ./artifacts/com.example.reaper-control-0.9.3.macroDeckPlugin
+macrodeck-plugin validate --artifact ./artifacts/com.example.reaper-control-0.12.1.macroDeckPlugin
 ```
 
 Die `.macroDeckPlugin`-Datei wird per Drag & Drop in Macro Deck installiert. Nicht von Hand zippen.
@@ -99,13 +99,13 @@ Die erste Spalte (Action-ID) speichert Macro Deck in den Profilen: nach dem erst
 
 ## Transport
 
-Action **„Transport“** mit Auswahl *Command*: Play/Stop (40044), Play/Stop + Edit Cursor (40328), Pause (1008, leuchtet nur bei Pause), Repeat (1068), Stop at loop end (41834), Play, Skip Timeline Selection (40317). Beschriftung = Befehlsname, leuchtet, solange die Action an ist (Spalte *State* der Action List; Play/Stop: solange REAPER spielt). Weitere Befehle: eine Zeile in `Commands` in `Actions/TransportAction.cs`.
+Action **„Transport“** mit Auswahl *Command*: Play/Stop (40044), Play/Stop + Edit Cursor (40328), Pause (1008, leuchtet nur bei Pause), Repeat (1068), Stop at loop end (41834), Play, Skip Timeline Selection (40317). Beschriftung = Befehlsname (Schalter *Show text* aus: nur Icon), leuchtet, solange die Action an ist (Spalte *State* der Action List; Play/Stop: solange REAPER spielt). Weitere Befehle: eine Zeile in `Commands` in `Actions/TransportAction.cs`.
 
 ### Icons
 
 Die Transport-Action liefert auch das Button-Icon. Beim Hinzufügen bietet Macro Deck an, Status **und** Icon zu übernehmen – beide Häkchen setzen.
 
-- Icons liegen als Dateien in `Assets/Icons` und werden über den Dateinamen ohne Endung angesprochen. **Nur PNG, JPEG, WebP oder GIF** – SVG lehnt Macro Deck für Plugin-Icons ab. Empfohlen: PNG, 256 × 256, weiß auf transparent. Mitgeliefert: `play`, `stop`, `pause`, `repeat`.
+- Icons liegen als Dateien in `Assets/Icons` und werden über den Dateinamen ohne Endung angesprochen. **Max. 512 KB pro Datei** (größere werden ignoriert, große Bilder blockieren sonst den Button-Editor), empfohlen 256 × 256 px. **Nur PNG, JPEG, WebP oder GIF** – SVG lehnt Macro Deck für Plugin-Icons ab. Empfohlen: PNG, 256 × 256, weiß auf transparent. Mitgeliefert: `play`, `stop`, `pause`, `repeat`.
 - Gedimmte Variante für „aus“: eigene Datei `<name>-dim.png` (z. B. gleiches Bild mit 35 % Deckkraft). Fehlt sie, erscheint auch bei „aus“ das volle Icon.
 - Pro Befehl in `Commands`: `Icon:` = Icon für „aus“, optional `IconWhenOn:` = Icon für „an“. Ohne `IconWhenOn` erscheint bei „an“ `<name>.png`, bei „aus“ `<name>-dim.png`.
 - `Assets/IconSources` enthält die SVG-Vorlagen der mitgelieferten Icons (wird nicht ins Paket übernommen).
@@ -117,13 +117,30 @@ new("play-stop", "Play/Stop", "40044", Icon: "play", IconWhenOn: "stop"), // zwe
 
 Neues Icon: Datei nach `Assets/Icons` legen, Namen in die Zeile schreiben, Version erhöhen, neu bauen. Die mitgelieferten Icons sind schlichte eigene Formen und lassen sich durch eigene Dateien mit gleichem Namen ersetzen.
 
+## Item
+
+Action **„Item“** mit Auswahl *Command*: Einstellungen der ausgewählten Items, u. a. Mute, Loop Source, Lock, Play All Takes, FX Chain. Rot, wenn alle ausgewählten Items stummgeschaltet sind, sonst dunkel grau-rot (`OnColor`/`OffColor` pro Eintrag in `Commands`). Die Rückmeldung kommt vom Status-Script (siehe unten), Tabelle `ITEM_PROPERTIES`.
+
+Neue Item-Einstellung mit Rückmeldung = zwei Zeilen:
+1. `Actions/ItemAction.cs`: `new("lock", "Lock", "<Command-ID>", State: SelectedItems("ItemLock")),`
+2. Lua-Script, Tabelle `ITEM_PROPERTIES`: `ItemLock = "C_LOCK",` (Parametername von `GetMediaItemInfo_Value`)
+
+### Aufbau Transport / Item
+
+Beide erben von `Actions/CommandListAction.cs` (Zustands-IDs werden dort kurz gehalten: Macro Deck erlaubt bei Actions mit Icon nur ca. 26 Zeichen), das Ausführen, Status, Farben, Icons und *Show text* erledigt. Eine eigene Liste braucht nur Id, Name, Beschreibung und die Liste `Commands`. Unterschied ist nur, woher „an“ kommt:
+- ohne `State:` – Toggle-Zustand der REAPER-Action,
+- `State: Playing / Paused` – Transport-Status (Web-Interface, kein Script),
+- `State: SelectedItems("…")` – Wert vom Lua-Script.
+
+„Item ruler“ ist älter und eigenständig; es funktioniert genauso, nur mit fest eingebauter Statusquelle.
+
 ## Item ruler
 
 Action **„Item ruler“** mit Auswahl *Ruler mode*: Item time (42312), Item H:M:S:F (42314), Item beats (42315), Item beats, minimal (42359), Source time (42313), Source time H:M:S:F (42358). Setzt den Modus für die ausgewählten Items; Beschriftung = Modusname, leuchtet, solange die ausgewählten Items diesen Modus haben.
 
 ### Status-Script
 
-Das Ruler-Format ist eine Eigenschaft jedes Items (Zeile `ITEMRULER <modus> 0 0` im Item-Chunk), daher liefern die Actions 42312 … keinen Toggle-Zustand (`-1`). Den Status veröffentlicht stattdessen `ReaperScripts/ReaperControl_ItemRulerState.lua`:
+Das Ruler-Format ist eine Eigenschaft jedes Items (Zeile `ITEMRULER <modus> 0 0` im Item-Chunk), daher liefern die Actions 42312 … keinen Toggle-Zustand (`-1`). Den Status veröffentlicht stattdessen `ReaperScripts/ReaperControl_ItemState.lua`:
 
 - ExtState `ReaperControl/ItemRuler` = `1`…`6` (Modus aller ausgewählten Items: 1 Item time, 2 Source time, 3 Item H:M:S:F, 4 Item beats, 5 Item beats minimal, 6 Source time H:M:S:F), `0` (nichts ausgewählt / kein Ruler), `mixed` (unterschiedliche Modi).
 - Leuchtet: der Button, dessen Modus alle ausgewählten Items haben. Läuft das Script nicht, zeigen die Buttons *Unavailable*.
@@ -133,7 +150,7 @@ Einrichten:
 2. REAPER: Actions → Show action list → *New action → Load ReaScript…* → Script wählen.
 3. Automatisch beim REAPER-Start: in `<Resource-Pfad>/Scripts/__startup.lua` (anlegen, falls nicht vorhanden) eintragen:
    ```lua
-   dofile(reaper.GetResourcePath() .. "/Scripts/ReaperControl/ReaperControl_ItemRulerState.lua")
+   dofile(reaper.GetResourcePath() .. "/Scripts/ReaperControl/ReaperControl_ItemState.lua")
    ```
    Für jetzt sofort: das Script einmal in der Action List ausführen.
 
@@ -161,13 +178,36 @@ Drei Actions; beim Hinzufügen „Bereitgestellte Status verwenden“ bestätige
 | Action | Einstellung | Verhalten |
 | --- | --- | --- |
 | **Go to marker** | Marker-ID / Slot, Schalter *Follow marker filter* und *Use marker color* (Standard: an) | Springt zum Marker, Beschriftung „Name“ und darunter „ID: n“. Mit *Follow marker filter* und aktivem Filter: der n-te passende Marker (zeitliche Reihenfolge) – für einen Folder mit Tasten 1, 2, 3, … |
-| **Go to next / previous marker** | Richtung, *Follow marker filter*, *Use marker color* | Springt zum nächsten Marker rechts bzw. vorherigen links vom Cursor. Beschriftung „Go to next“/„Go to previous“ und darunter der Markername, folgt dem Cursor. |
+| **Go to next / previous marker** | Richtung (next / previous / *Switch "Follow filter"*), *Follow marker filter* (Umschalt-Taste / immer / nie), *Use marker color* | Springt zum nächsten Marker rechts bzw. vorherigen links vom Cursor. Folgt die Taste dem aktiven Filter, erscheint oben rechts ein Filtersymbol (Icon `filter-badge.png`; beim Hinzufügen auch „Button-Symbol“ übernehmen). Richtung *Switch "Follow filter"*: schaltet für alle Next/Previous-Tasten mit „Follow the switch button“ um – ohne eigene Beschriftung, damit es auf *Long Press* einer Next/Previous-Taste passt. Für eine eigene leuchtende Umschalt-Taste: Variable `reaper_marker_nav_filtered` per *State mapping*. Beschriftung „Go to next“/„Go to previous“ und darunter der Markername, folgt dem Cursor. |
 | **Marker filter** | Text, „enthält“ / „beginnt mit“ | Aktiviert den Filter; erneuter Druck zeigt wieder alle. Immer nur ein Filter aktiv. Groß-/Kleinschreibung egal. |
 
 - Aktueller Marker (Play-/Edit-Cursor ab dem Marker bis zum nächsten): mit *Use marker color* in voller Markerfarbe, alle anderen abgedunkelt; ohne eigene Markerfarbe bzw. Schalter aus: aktueller Marker grün, die anderen dunkelgrau.
 - Leere Slots (weniger Treffer als Tasten) zeigen keine Beschriftung und tun nichts.
 - Nur Marker, keine Regionen. Der Filter gilt Plugin-weit (alle Folder) und ist nach einem Neustart des Plugins aufgehoben.
 - Technik: `MarkerMonitor` fragt alle 300 ms `MARKER;TRANSPORT` ab, solange Marker-Tasten angezeigt werden; Sprung per `SET/POS_STR/m<ID>`.
+
+## Widget „REAPER timecode“
+
+Eigener Widget-Typ (Kachel): zeigt die Position des Play-Cursors (beim Abspielen/Pause/Aufnahme) bzw. Edit-Cursors. Im Deck-Editor wie die eingebauten Widgets hinzufügen.
+
+Während REAPER aufnimmt, bekommt die Kachel einen roten Rahmen.
+
+Konfiguration: *Format*, *Show format name*, Rahmen, Hintergrund (auch transparent), Textfarbe. Im Aktionen-Editor des Widgets lassen sich wie bei einem Button Actions auf *Short Press*, *Long Press* usw. legen.
+
+| Format | Script nötig? |
+| --- | --- |
+| Like transport window (Standard) | nein |
+| Measures.Beats | nein |
+| Minutes:Seconds, Seconds | nein (mit Script exakt wie REAPER formatiert) |
+| Measures.Beats + Time, Samples, Hours:Minutes:Seconds:Frames, Absolute frames | ja |
+
+Script `ReaperScripts/ReaperControl_Timecode.lua`: wie das Item-Ruler-Script nach `Scripts/ReaperControl/` kopieren, laden und in `Scripts/__startup.lua` eintragen:
+
+```lua
+dofile(reaper.GetResourcePath() .. "/Scripts/ReaperControl/ReaperControl_Timecode.lua")
+```
+
+Technik: `TimecodeMonitor` fragt nur, solange eine Timecode-Kachel offen ist, alle 100 ms `TRANSPORT;GET/EXTSTATE/ReaperControl/Timecode` ab; das Script schreibt die Position in allen Formaten über `format_timestr_pos`.
 
 ## Nächste Schritte
 

@@ -29,7 +29,8 @@ public static class IconLibrary
 
     /// <summary>For the log: which folders exist and which icons they hold.</summary>
     public static string Describe() => string.Join("; ", Folders.Select(f => Directory.Exists(f)
-        ? $"{f}: {string.Join(", ", Directory.EnumerateFiles(f).Select(Path.GetFileName))}"
+        ? $"{f}: {string.Join(", ", Directory.EnumerateFiles(f).Select(p =>
+            new FileInfo(p).Length > MaxBytes ? $"{Path.GetFileName(p)} (TOO LARGE, ignored)" : Path.GetFileName(p)))}"
         : $"{f}: (missing)"));
 
     private static readonly (string Extension, string MediaType)[] Formats =
@@ -39,6 +40,9 @@ public static class IconLibrary
         (".gif", "image/gif"),
         (".webp", "image/webp"),
     ];
+
+    /// <summary>Bigger files are ignored: use about 256 × 256 px, well under 1 MB.</summary>
+    private const long MaxBytes = 512 * 1024;
 
     private static readonly ConcurrentDictionary<string, ActionIconContent?> Cache = new();
 
@@ -83,7 +87,8 @@ public static class IconLibrary
         foreach (var folder in Folders)
         {
             var path = Path.Combine(folder, fileName + extension);
-            if (File.Exists(path))
+            // Large images stall Macro Deck's editor (the bytes travel inside a protocol message).
+            if (File.Exists(path) && new FileInfo(path).Length <= MaxBytes)
             {
                 return new ActionIconContent(File.ReadAllBytes(path), mediaType);
             }

@@ -39,6 +39,16 @@ public sealed record MarkerFilter(string Text, MarkerMatch Match)
 /// <summary>The marker filter that the filter buttons set and the marker buttons follow (one, shared).</summary>
 public sealed class MarkerFilterState
 {
+    private volatile bool _navigationFollowsFilter;
+
+    /// <summary>
+    /// Shared switch for "Go to next / previous marker" buttons set to "Follow toggle button":
+    /// toggled by the "Marker navigation: follow filter" action.
+    /// </summary>
+    public bool NavigationFollowsFilter => _navigationFollowsFilter;
+
+    public bool ToggleNavigationFollowsFilter() => _navigationFollowsFilter = !_navigationFollowsFilter;
+
     private MarkerFilter? _current;
 
     public MarkerFilter? Current => Volatile.Read(ref _current);
@@ -104,7 +114,12 @@ public sealed class MarkerMonitor(
     }
 
     /// <summary>Makes Macro Deck re-read this plugin's buttons now (e.g. after the filter changed).</summary>
-    public void NotifyButtonsChanged() => notifier.CatalogChanged("actions", reason: "markers");
+    public void NotifyButtonsChanged()
+    {
+        notifier.CatalogChanged("actions", reason: "markers");
+        // The filter badge of next/previous buttons is an icon, read separately from states.
+        connection.InvalidateIcons(ReaperControl.Actions.NextPreviousMarkerAction.ActionId);
+    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

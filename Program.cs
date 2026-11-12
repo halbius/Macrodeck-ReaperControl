@@ -20,5 +20,9 @@ builder.Services.AddSingleton<MarkerMonitor>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<MarkerMonitor>());
 builder.Services.AddSingleton<MarkerFilterState>();
 
+// Cursor position for the timecode widget (polls only while a timecode tile is open).
+builder.Services.AddSingleton<TimecodeMonitor>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<TimecodeMonitor>());
+
 var plugin = builder.Build();
 await plugin.RunAsync();
