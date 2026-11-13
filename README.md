@@ -99,13 +99,13 @@ Die erste Spalte (Action-ID) speichert Macro Deck in den Profilen: nach dem erst
 
 ## Transport
 
-Action **„Transport“** mit Auswahl *Command*: Play/Stop (40044), Play/Stop + Edit Cursor (40328), Pause (1008, leuchtet nur bei Pause), Repeat (1068), Stop at loop end (41834), Play, Skip Timeline Selection (40317). Beschriftung = Befehlsname (Schalter *Show text* aus: nur Icon), leuchtet, solange die Action an ist (Spalte *State* der Action List; Play/Stop: solange REAPER spielt). Weitere Befehle: eine Zeile in `Commands` in `Actions/TransportAction.cs`.
+Action **„Transport“** mit Auswahl *Command*: Play/Stop (40044), Play/Stop + Edit Cursor (40328), Pause (1008, leuchtet nur bei Pause), Repeat (1068), Stop at loop end (41834), Play, Skip Timeline Selection (40317), Record (1013, rot nur während der Aufnahme, auch bei Aufnahme-Pause). Beschriftung = Befehlsname (Schalter *Show text* aus: nur Icon), leuchtet, solange die Action an ist (Spalte *State* der Action List; Play/Stop: solange REAPER spielt). Weitere Befehle: eine Zeile in `Commands` in `Actions/TransportAction.cs`.
 
 ### Icons
 
 Die Transport-Action liefert auch das Button-Icon. Beim Hinzufügen bietet Macro Deck an, Status **und** Icon zu übernehmen – beide Häkchen setzen.
 
-- Icons liegen als Dateien in `Assets/Icons` und werden über den Dateinamen ohne Endung angesprochen. **Max. 512 KB pro Datei** (größere werden ignoriert, große Bilder blockieren sonst den Button-Editor), empfohlen 256 × 256 px. **Nur PNG, JPEG, WebP oder GIF** – SVG lehnt Macro Deck für Plugin-Icons ab. Empfohlen: PNG, 256 × 256, weiß auf transparent. Mitgeliefert: `play`, `stop`, `pause`, `repeat`.
+- Icons liegen als Dateien in `Assets/Icons` und werden über den Dateinamen ohne Endung angesprochen. **Max. 512 KB pro Datei** (größere werden ignoriert, große Bilder blockieren sonst den Button-Editor), empfohlen 256 × 256 px. **Nur PNG, JPEG, WebP oder GIF** – SVG lehnt Macro Deck für Plugin-Icons ab. Empfohlen: PNG, 256 × 256, weiß auf transparent. Mitgeliefert: `play`, `stop`, `pause`, `repeat`, `record`.
 - Gedimmte Variante für „aus“: eigene Datei `<name>-dim.png` (z. B. gleiches Bild mit 35 % Deckkraft). Fehlt sie, erscheint auch bei „aus“ das volle Icon.
 - Pro Befehl in `Commands`: `Icon:` = Icon für „aus“, optional `IconWhenOn:` = Icon für „an“. Ohne `IconWhenOn` erscheint bei „an“ `<name>.png`, bei „aus“ `<name>-dim.png`.
 - `Assets/IconSources` enthält die SVG-Vorlagen der mitgelieferten Icons (wird nicht ins Paket übernommen).
@@ -125,7 +125,15 @@ Neue Item-Einstellung mit Rückmeldung = zwei Zeilen:
 1. `Actions/ItemAction.cs`: `new("lock", "Lock", "<Command-ID>", State: SelectedItems("ItemLock")),`
 2. Lua-Script, Tabelle `ITEM_PROPERTIES`: `ItemLock = "C_LOCK",` (Parametername von `GetMediaItemInfo_Value`)
 
-### Aufbau Transport / Item
+## Track
+
+Action **„Track“** mit Auswahl *Command*: Mute (6), Solo (7), Unsolo All (40340, leuchtet gelb, solange irgendein Track solo ist), Pin Tracks (40000), Lock, Phase (40282). Die Rückmeldung kommt vom Script `ReaperScripts/ReaperControl_TrackState.lua` (Tabelle `TRACK_PROPERTIES`, dazu `TrackAnySolo`); es wird wie das Item-Script in `Scripts/__startup.lua` eingetragen.
+
+**Lock** hat eine eigene Auswahl *Lock type* (nur sichtbar, wenn *Lock* gewählt ist): Controls (41314), Height (42336), Items (43696). Controls = `LOCK 1` im Track-Teil des Chunks, Height = `B_HEIGHTLOCK`, Items = alle Items des Tracks gesperrt (43696 sperrt die Items einzeln). Tasten, die noch mit den früheren Einzeleinträgen „Lock Track Controls/Height/Items“ angelegt wurden, funktionieren weiter.
+
+Varianten wie bei Lock: in `Commands` beim Eintrag `Options: [...]` (je `new(Key, Name, Command-ID, State)`) und `OptionsLabel:` angeben – `CommandListAction` blendet dafür ein eigenes Auswahlfeld ein.
+
+### Aufbau Transport / Item / Track
 
 Beide erben von `Actions/CommandListAction.cs` (Zustands-IDs werden dort kurz gehalten: Macro Deck erlaubt bei Actions mit Icon nur ca. 26 Zeichen), das Ausführen, Status, Farben, Icons und *Show text* erledigt. Eine eigene Liste braucht nur Id, Name, Beschreibung und die Liste `Commands`. Unterschied ist nur, woher „an“ kommt:
 - ohne `State:` – Toggle-Zustand der REAPER-Action,
@@ -190,9 +198,11 @@ Drei Actions; beim Hinzufügen „Bereitgestellte Status verwenden“ bestätige
 
 Eigener Widget-Typ (Kachel): zeigt die Position des Play-Cursors (beim Abspielen/Pause/Aufnahme) bzw. Edit-Cursors. Im Deck-Editor wie die eingebauten Widgets hinzufügen.
 
-Während REAPER aufnimmt, bekommt die Kachel einen roten Rahmen.
+Die Zeit wechselt die Farbe mit dem Transport: grün beim Abspielen, gelb bei Pause, rot bei Aufnahme, orange bei Aufnahme-Pause; im Stopp die eingestellte Textfarbe.
 
-Konfiguration: *Format*, *Show format name*, Rahmen, Hintergrund (auch transparent), Textfarbe. Im Aktionen-Editor des Widgets lassen sich wie bei einem Button Actions auf *Short Press*, *Long Press* usw. legen.
+Darunter optional eine Infozeile: *Show playback rate* (z. B. „Rate 1.00“, braucht `ReaperControl_Timecode.lua`) und *Show record mode* („Rec: Normal / Time punch / Item punch“, aus dem Zustand der Actions 40252 / 40076 / 40253, kein Script nötig). Beide standardmäßig an.
+
+Konfiguration: *Format*, *Show playback rate*, *Show record mode*, Rahmen, Hintergrund (auch transparent), Textfarbe. Im Aktionen-Editor des Widgets lassen sich wie bei einem Button Actions auf *Short Press*, *Long Press* usw. legen.
 
 | Format | Script nötig? |
 | --- | --- |
@@ -207,11 +217,9 @@ Script `ReaperScripts/ReaperControl_Timecode.lua`: wie das Item-Ruler-Script nac
 dofile(reaper.GetResourcePath() .. "/Scripts/ReaperControl/ReaperControl_Timecode.lua")
 ```
 
-Technik: `TimecodeMonitor` fragt nur, solange eine Timecode-Kachel offen ist, alle 100 ms `TRANSPORT;GET/EXTSTATE/ReaperControl/Timecode` ab; das Script schreibt die Position in allen Formaten über `format_timestr_pos`.
+Technik: `TimecodeMonitor` fragt nur, solange eine Timecode-Kachel offen ist, alle 100 ms `TRANSPORT`, `GET/EXTSTATE/ReaperControl/Timecode` und `…/PlayRate` sowie `GET/40252;GET/40076;GET/40253` ab; das Script schreibt die Position in allen Formaten über `format_timestr_pos`.
 
 ## Nächste Schritte
 
-- **Transport-/Track-Status:** Play/Record aus `TRANSPORT`, Mute/Solo pro Track aus `TRACK`.
-- **Track-Aktionen:** Mute/Solo/Arm per `SET/TRACK/<n>/MUTE/-1` (Toggle).
 - **Marker-Manager mobil:** Liste per `GetMarkersAsync`; Ändern über `SetExtStateAsync` + kleines Lua-Script (`reaper.GetExtState` → `SetProjectMarker4`), das per Command-ID aufgerufen wird. Für die Oberfläche die Macro-Deck-Views (List, Text field) prüfen.
 - Tests mit `MacroDeck.Plugin.Testing`.

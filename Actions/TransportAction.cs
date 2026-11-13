@@ -23,6 +23,9 @@ public sealed class TransportAction(
     // On = REAPER is paused (not while playing or stopped).
     private static readonly StateRule Paused = new(new TransportPaused(), "1");
 
+    // On = REAPER records (also record-paused) - not while it only plays.
+    private static readonly StateRule Recording = new(new TransportRecording(), "1");
+
 
     public override string Id => ActionId;
 
@@ -45,6 +48,8 @@ public sealed class TransportAction(
         // Same icon either way (IconWhenOn = Icon: never dimmed); lit while playing.
         new("play-skip-selection", "Play, Skip Timeline Selection", "40317",
             Icon: "play", IconWhenOn: "play", State: Playing),
+        // Red while recording, dark red otherwise (full icon while recording, dimmed otherwise).
+        new("record", "Record", "1013", Icon: "record", State: Recording, OnColor: "#c53030", OffColor: "#4a2a2a"),
 
     ];
 }

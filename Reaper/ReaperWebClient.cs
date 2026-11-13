@@ -89,7 +89,7 @@ public sealed class ReaperWebClient : IDisposable
     public async Task<IReadOnlyDictionary<string, string>> GetStatesAsync(
         IReadOnlyList<StateSource> sources, CancellationToken cancellationToken)
     {
-        var reply = await SendAsync(sources.Select(s => s.Request), cancellationToken);
+        var reply = await SendAsync(sources.Select(s => s.Request).Distinct(), cancellationToken);
         return ReaperResponseParser.ParseStates(reply, sources);
     }
 
@@ -100,7 +100,7 @@ public sealed class ReaperWebClient : IDisposable
     public async Task<IReadOnlyDictionary<string, string>> SendAndGetStatesAsync(
         IReadOnlyList<string> commands, IReadOnlyList<StateSource> sources, CancellationToken cancellationToken)
     {
-        var reply = await SendAsync([.. commands, .. sources.Select(s => s.Request)], cancellationToken);
+        var reply = await SendAsync([.. commands, .. sources.Select(s => s.Request).Distinct()], cancellationToken);
         return ReaperResponseParser.ParseStates(reply, sources);
     }
 

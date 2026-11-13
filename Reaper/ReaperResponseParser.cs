@@ -104,6 +104,9 @@ public static class ReaperResponseParser
                 case TransportPaused t when ParseTransport(reply) is { } transport:
                     result[t.Key] = transport.PlayState is 2 or 6 ? "1" : "0";
                     break;
+                case TransportRecording t when ParseTransport(reply) is { } transport:
+                    result[t.Key] = transport.PlayState is 5 or 6 ? "1" : "0";
+                    break;
             }
         }
 

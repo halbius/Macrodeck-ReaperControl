@@ -14,6 +14,10 @@ namespace ReaperControl.Actions;
 /// <param name="State">Where "on" comes from. Null: the REAPER action's own toggle state.</param>
 /// <param name="OnColor">Button color while on ("#rrggbb"). Null: green.</param>
 /// <param name="OffColor">Button color while off. Null: dark grey.</param>
+/// <param name="Options">Variants of this command, chosen in an extra field below "Command" that only
+/// shows while this command is picked (e.g. "Lock" → Controls / Height / Items). Each variant brings its
+/// own command id, state and label; icon and colors come from this entry. Null: no extra field.</param>
+/// <param name="OptionsLabel">Label of that extra field.</param>
 public sealed record ListCommand(
     string Key,
     string Name,
@@ -22,7 +26,17 @@ public sealed record ListCommand(
     string? IconWhenOn = null,
     StateRule? State = null,
     string? OnColor = null,
-    string? OffColor = null);
+    string? OffColor = null,
+    IReadOnlyList<ListOption>? Options = null,
+    string? OptionsLabel = null);
+
+/// <summary>One variant of a <see cref="ListCommand" /> with <see cref="ListCommand.Options" />.</summary>
+/// <param name="Key">Stored parameter value and state id prefix - never rename after first use.
+/// Unique across the whole action (it is also accepted as "Command" value, see CommandListAction).</param>
+/// <param name="Name">Shown in the extra field and as button label.</param>
+/// <param name="CommandId">REAPER command id.</param>
+/// <param name="State">Where "on" comes from. Null: the REAPER action's own toggle state.</param>
+public sealed record ListOption(string Key, string Name, string CommandId, StateRule? State = null);
 
 /// <summary>
 /// Base for actions that offer a list of REAPER commands to choose from in the button's settings
@@ -64,9 +78,20 @@ public abstract class CommandListAction(
         ActionParameter.Choice(CommandParameter,
             Commands.Select(c => new ActionParameterOption { Value = c.Key, Label = c.Name }).ToList(),
             "Command", defaultValue: Commands[0].Key, required: true),
+        // One extra field per command with variants, shown only while that command is picked.
+        .. Commands.Where(c => c.Options is { Count: > 0 }).Select(c =>
+            ActionParameter.Choice(OptionParameter(c),
+                    c.Options!.Select(o => new ActionParameterOption { Value = o.Key, Label = o.Name }).ToList(),
+                    c.OptionsLabel ?? c.Name, defaultValue: c.Options![0].Key)
+                .OnlyWhen(CommandParameter, c.Key)),
         ActionParameter.Toggle(ShowLabelParameter, "Show text",
             "Show the command name on the button. Turn off for icon-only buttons.", defaultValue: true)
     ];
+
+    /// <summary>Parameter name of a command's variant field: "lock" → "lockOption".</summary>
+    private static string OptionParameter(ListCommand command) =>
+        string.Concat(command.Key.Split('-', StringSplitOptions.RemoveEmptyEntries)
+            .Select((part, i) => i == 0 ? part : char.ToUpperInvariant(part[0]) + part[1..])) + "Option";
 
     public TimeSpan StatePollInterval => TimeSpan.FromSeconds(1);
 
@@ -109,8 +134,38 @@ public abstract class CommandListAction(
 
     public IActionExecutor CreateExecutor() => new Executor(this, connection, stateMonitor, logger);
 
-    private ListCommand CommandOf<T>(IReadOnlyDictionary<string, T> parameters) =>
-        Commands.FirstOrDefault(c => c.Key == Values.Get(parameters, CommandParameter)) ?? Commands[0];
+    /// <summary>
+    /// The command a button runs. For a command with variants this is the chosen variant, with the
+    /// command's icon and colors. A variant key as "Command" value also works - buttons from before a
+    /// command got variants (e.g. "lock-controls" as its own entry) keep working unchanged.
+    /// </summary>
+    private ListCommand CommandOf<T>(IReadOnlyDictionary<string, T> parameters)
+    {
+        var key = Values.Get(parameters, CommandParameter);
+        if (Commands.FirstOrDefault(c => c.Key == key) is { } command)
+        {
+            if (command.Options is not { Count: > 0 } options)
+            {
+                return command;
+            }
+
+            var optionKey = Values.Get(parameters, OptionParameter(command));
+            return WithOption(command, options.FirstOrDefault(o => o.Key == optionKey) ?? options[0]);
+        }
+
+        foreach (var parent in Commands)
+        {
+            if (parent.Options?.FirstOrDefault(o => o.Key == key) is { } option)
+            {
+                return WithOption(parent, option);
+            }
+        }
+
+        return Commands[0] is { Options: { Count: > 0 } first } c0 ? WithOption(c0, first[0]) : Commands[0];
+    }
+
+    private static ListCommand WithOption(ListCommand command, ListOption option) =>
+        command with { Key = option.Key, Name = option.Name, CommandId = option.CommandId, State = option.State, Options = null };
 
     private static StateRule RuleFor(ListCommand command) => command.State ?? StateRule.Toggle(command.CommandId);
 

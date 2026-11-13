@@ -41,14 +41,20 @@ public sealed class TrackAction(
         // Red while the selected items are muted, dark grey-red otherwise.
         new("track-mute", "Track Mute", "6", State: SelectedTracks("TrackMute"), OnColor: "#c53030", OffColor: "#4a2a2a"),
         new("track-solo", "Track Solo", "7", State: SelectedTracks("TrackSolo"), OnColor: "#d4d800", OffColor: "#a0a156"),
-        new("track-unsolo-all", "Track Unsolo All", "40340"),
+        // Lit yellow while any track of the project is soloed (TrackAnySolo from the Lua script).
+        new("track-unsolo-all", "Track Unsolo All", "40340",
+            State: StateRule.ExtStateEquals("ReaperControl", "TrackAnySolo", "1"), OnColor: "#d4d800", OffColor: "#a0a156"),
         new("track-pin", "Pin Tracks", "40000"),
-        new("lock-controls", "Lock Track Controls", "41314", Icon: "lock-open", IconWhenOn: "lock-closed",
-            State: SelectedTracks("TrackLockControls"), OnColor: "#b82323", OffColor: "#7c5151"),
-        new("lock-height", "Lock Track Height", "42336", Icon: "lock-open", IconWhenOn: "lock-closed",
-            State: SelectedTracks("TrackLockHeight"), OnColor: "#b82323", OffColor: "#7c5151"),
-        new("lock-items", "Lock Track Items", "43696", Icon: "lock-open", IconWhenOn: "lock-closed",
-            State: SelectedTracks("TrackLockItems"), OnColor: "#b82323", OffColor: "#7c5151"),
+        // One "Lock" entry; which lock is chosen in the extra field "Lock type" of the button.
+        // The option keys are the former entries' keys, so existing buttons keep working.
+        new("lock", "Lock", "41314", Icon: "lock-open", IconWhenOn: "lock-closed", OnColor: "#b82323", OffColor: "#7c5151",
+            OptionsLabel: "Lock type",
+            Options:
+            [
+                new("lock-controls", "Lock Track Controls", "41314", SelectedTracks("TrackLockControls")),
+                new("lock-height", "Lock Track Height", "42336", SelectedTracks("TrackLockHeight")),
+                new("lock-items", "Lock Track Items", "43696", SelectedTracks("TrackLockItems")),
+            ]),
         new("phase", "Track Phase", "40282", State: SelectedTracks("TrackPhase"), OnColor: "#308ac5", OffColor: "#818e97"),
 
     ];

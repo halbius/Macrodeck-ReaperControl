@@ -13,13 +13,23 @@ namespace ReaperControl.Reaper;
 /// <param name="ScriptFormats">Formatted by ReaperControl_Timecode.lua, keyed by REAPER's time format
 /// mode (0 time, 1 measures.beats + time, 2 measures.beats, 3 seconds, 4 samples, 5 h:m:s:f, 8 frames).
 /// Empty while the script is not running.</param>
-/// <param name="Recording">REAPER records (also record-paused).</param>
+/// <param name="PlayState">0 stopped, 1 playing, 2 paused, 5 recording, 6 record-paused.</param>
+/// <param name="PlayRate">Playback rate as ReaperControl_Timecode.lua publishes it ("1.00"); empty
+/// while the script is not running.</param>
+/// <param name="RecordMode">"normal", "time" (time selection auto-punch), "item" (selected item
+/// auto-punch) or empty when unknown.</param>
 public sealed record TimecodeSnapshot(
     string TransportFormat,
     string Beats,
     double Seconds,
     IReadOnlyDictionary<int, string> ScriptFormats,
-    bool Recording = false);
+    int PlayState = 0,
+    string PlayRate = "",
+    string RecordMode = "")
+{
+    /// <summary>REAPER records (also record-paused).</summary>
+    public bool Recording => PlayState is 5 or 6;
+}
 
 /// <summary>
 /// Polls the cursor position while at least one timecode widget is open (100 ms) and tells the
@@ -29,6 +39,15 @@ public sealed class TimecodeMonitor(ReaperConnection connection, ILogger<Timecod
 {
     public const string ExtStateSection = "ReaperControl";
     public const string ExtStateKey = "Timecode";
+    public const string PlayRateKey = "PlayRate";
+
+    // "Record: Set record mode to ..." - their toggle state says which mode is active.
+    private static readonly (string Mode, CommandToggleState Source)[] RecordModes =
+    [
+        ("normal", new CommandToggleState("40252")),
+        ("time", new CommandToggleState("40076")),
+        ("item", new CommandToggleState("40253")),
+    ];
 
     /// <summary>The time format modes the script writes, in this order, separated by '|'.</summary>
     public static readonly int[] ScriptModes = [0, 1, 2, 3, 4, 5, 8];
@@ -93,7 +112,9 @@ public sealed class TimecodeMonitor(ReaperConnection connection, ILogger<Timecod
         try
         {
             var reply = await client.SendAsync(
-                ["TRANSPORT", $"GET/EXTSTATE/{ExtStateSection}/{ExtStateKey}"], cancellationToken);
+                ["TRANSPORT", $"GET/EXTSTATE/{ExtStateSection}/{ExtStateKey}",
+                    $"GET/EXTSTATE/{ExtStateSection}/{PlayRateKey}", .. RecordModes.Select(m => m.Source.Request)],
+                cancellationToken);
             next = Parse(reply);
             _reachable = true;
         }
@@ -125,7 +146,11 @@ public sealed class TimecodeMonitor(ReaperConnection connection, ILogger<Timecod
         }
 
         var ext = new ExtStateValue(ExtStateSection, ExtStateKey);
-        var raw = ReaperResponseParser.ParseStates(reply, [ext]).GetValueOrDefault(ext.Key, "");
+        var rate = new ExtStateValue(ExtStateSection, PlayRateKey);
+        var states = ReaperResponseParser.ParseStates(reply, [ext, rate, .. RecordModes.Select(m => m.Source)]);
+        var raw = states.GetValueOrDefault(ext.Key, "");
+        var recordMode = RecordModes.FirstOrDefault(m => states.GetValueOrDefault(m.Source.Key) is { } v
+                                                         && int.TryParse(v, out var on) && on > 0).Mode ?? "";
 
         var formats = new Dictionary<int, string>();
         if (raw.Length > 0)
@@ -138,14 +163,16 @@ public sealed class TimecodeMonitor(ReaperConnection connection, ILogger<Timecod
         }
 
         return new TimecodeSnapshot(transport.PositionString, transport.PositionBeats, transport.PositionSeconds,
-            formats, Recording: transport.PlayState is 5 or 6);
+            formats, transport.PlayState, states.GetValueOrDefault(rate.Key, "").Trim(), recordMode);
     }
 
     private static bool SameContent(TimecodeSnapshot? a, TimecodeSnapshot? b) =>
         a is not null && b is not null
         && a.TransportFormat == b.TransportFormat
         && a.Beats == b.Beats
-        && a.Recording == b.Recording
+        && a.PlayState == b.PlayState
+        && a.PlayRate == b.PlayRate
+        && a.RecordMode == b.RecordMode
         && a.Seconds.ToString("F4", CultureInfo.InvariantCulture) == b.Seconds.ToString("F4", CultureInfo.InvariantCulture)
         && a.ScriptFormats.Count == b.ScriptFormats.Count
         && a.ScriptFormats.All(kv => b.ScriptFormats.TryGetValue(kv.Key, out var v) && v == kv.Value);

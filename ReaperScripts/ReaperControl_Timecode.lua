@@ -7,6 +7,8 @@
 -- the modes 0 time, 1 measures.beats + time, 2 measures.beats, 3 seconds, 4 samples, 5 h:m:s:f,
 -- 8 frames - in this order, separated by "|". Keep the order in sync with TimecodeMonitor.ScriptModes.
 --
+-- ExtState "ReaperControl" / "PlayRate": the project playback rate, e.g. "1.00" (widget info line).
+--
 -- Without this script the widget still shows "Like transport window", "Measures.Beats",
 -- "Minutes:Seconds" and "Seconds".
 
@@ -14,7 +16,7 @@ local SECTION, KEY = "ReaperControl", "Timecode"
 local MODES = { 0, 1, 2, 3, 4, 5, 8 }
 local REFRESH = 0.5 -- seconds: also refresh while standing still (tempo, frame rate, project tab changes)
 
-local lastPos, lastValue, lastRefresh = nil, nil, 0
+local lastPos, lastValue, lastRefresh, lastRate = nil, nil, 0, nil
 
 local function position()
   -- Play position while playing, paused or recording; edit cursor while stopped.
@@ -38,12 +40,18 @@ local function loop()
       lastValue = value
       reaper.SetExtState(SECTION, KEY, value, false)
     end
+    local rate = string.format("%.2f", reaper.Master_GetPlayRate(0))
+    if rate ~= lastRate then
+      lastRate = rate
+      reaper.SetExtState(SECTION, "PlayRate", rate, false)
+    end
   end
   reaper.defer(loop)
 end
 
 reaper.atexit(function()
   reaper.DeleteExtState(SECTION, KEY, false)
+  reaper.DeleteExtState(SECTION, "PlayRate", false)
 end)
 
 loop()

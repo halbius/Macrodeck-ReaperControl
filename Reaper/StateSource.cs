@@ -40,3 +40,10 @@ public sealed record TransportPaused : StateSource
     public override string Key => "transport:paused";
     public override string Request => "TRANSPORT";
 }
+
+/// <summary>"1" while REAPER records (also record-paused), "0" otherwise - from the TRANSPORT reply.</summary>
+public sealed record TransportRecording : StateSource
+{
+    public override string Key => "transport:recording";
+    public override string Request => "TRANSPORT";
+}
