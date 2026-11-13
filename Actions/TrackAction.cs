@@ -40,7 +40,7 @@ public sealed class TrackAction(
         // "Item properties: Toggle mute" - check the id in your action list.
         // Red while the selected items are muted, dark grey-red otherwise.
         new("track-mute", "Track Mute", "6", State: SelectedTracks("TrackMute"), OnColor: "#c53030", OffColor: "#4a2a2a"),
-        new("track-solo", "Track Solo", "7", State: SelectedTracks("TrackSolo"), OnColor: "#c53030", OffColor: "#4a2a2a"),
+        new("track-solo", "Track Solo", "7", State: SelectedTracks("TrackSolo"), OnColor: "#d4d800", OffColor: "#a0a156"),
         new("track-unsolo-all", "Track Unsolo All", "40340"),
         new("track-pin", "Pin Tracks", "40000"),
         new("lock-controls", "Lock Track Controls", "41314", Icon: "lock-open", IconWhenOn: "lock-closed",
@@ -49,6 +49,7 @@ public sealed class TrackAction(
             State: SelectedTracks("TrackLockHeight"), OnColor: "#b82323", OffColor: "#7c5151"),
         new("lock-items", "Lock Track Items", "43696", Icon: "lock-open", IconWhenOn: "lock-closed",
             State: SelectedTracks("TrackLockItems"), OnColor: "#b82323", OffColor: "#7c5151"),
+        new("phase", "Track Phase", "40282", State: SelectedTracks("TrackPhase"), OnColor: "#308ac5", OffColor: "#818e97"),
 
     ];
 
