@@ -155,7 +155,8 @@ public sealed class CommandStateMonitor(
             // (no local id: several actions show states - "run-command" and the fixed ones).
             notifier.CatalogChanged("actions", reason: "reaper-state");
             // Icons are polled separately; bring the read forward for actions with state-driven icons.
-            connection.InvalidateIcons(ReaperControl.Actions.TransportAction.ActionId, ReaperControl.Actions.ItemAction.ActionId);
+            connection.InvalidateIcons(ReaperControl.Actions.TransportAction.ActionId, ReaperControl.Actions.ItemAction.ActionId, ReaperControl.Actions.TrackAction.ActionId);
+            
         }
     }
 

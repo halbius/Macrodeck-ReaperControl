@@ -23,6 +23,7 @@ public sealed class TransportAction(
     // On = REAPER is paused (not while playing or stopped).
     private static readonly StateRule Paused = new(new TransportPaused(), "1");
 
+
     public override string Id => ActionId;
 
     public override LocalizedText Name => "Transport";
@@ -44,5 +45,6 @@ public sealed class TransportAction(
         // Same icon either way (IconWhenOn = Icon: never dimmed); lit while playing.
         new("play-skip-selection", "Play, Skip Timeline Selection", "40317",
             Icon: "play", IconWhenOn: "play", State: Playing),
+
     ];
 }

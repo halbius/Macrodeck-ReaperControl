@@ -55,7 +55,7 @@ public sealed class ReaperIntegration : IPluginIntegration, IConfigFlowProvider,
             new ItemRulerAction(connection, stateMonitor, loggerFactory.CreateLogger<ItemRulerAction>()),
             new TransportAction(connection, stateMonitor, loggerFactory.CreateLogger<TransportAction>()),
             new ItemAction(connection, stateMonitor, loggerFactory.CreateLogger<ItemAction>()),
-            // The fixed buttons - edit the list in Actions/FixedCommandAction.cs.
+            new TrackAction(connection, stateMonitor, loggerFactory.CreateLogger<TrackAction>()),
             .. FixedCommands.All.Select(c => new FixedCommandAction(c, connection, stateMonitor, fixedLogger))
         ];
     }
