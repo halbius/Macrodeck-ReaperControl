@@ -97,8 +97,28 @@ local function update()
   end
 end
 
+-- Started and stopped by the plugin (ScriptKeeper): "ItemStateRunning" tells it the script runs; the
+-- plugin writes a changing "ItemStateHeartbeat" while it needs the values. Without a new heartbeat for
+-- HEARTBEAT_TIMEOUT seconds (Macro Deck closed, no button needs it) the script ends itself.
+local SCRIPT_NAME = "ItemState"
+local HEARTBEAT_TIMEOUT = 10 -- seconds
+reaper.SetExtState("ReaperControl", SCRIPT_NAME .. "Running", "1", false)
+local lastBeat = reaper.GetExtState("ReaperControl", SCRIPT_NAME .. "Heartbeat")
+local lastBeatTime, lastBeatCheck = reaper.time_precise(), 0
+
+local function plugin_alive(now)
+  if now - lastBeatCheck < 1 then return true end
+  lastBeatCheck = now
+  local beat = reaper.GetExtState("ReaperControl", SCRIPT_NAME .. "Heartbeat")
+  if beat ~= lastBeat then
+    lastBeat, lastBeatTime = beat, now
+  end
+  return now - lastBeatTime < HEARTBEAT_TIMEOUT
+end
+
 local function loop()
   local now = reaper.time_precise()
+  if not plugin_alive(now) then return end -- no defer: the script ends, atexit cleans up
   if now - lastCheck >= CHECK_INTERVAL then
     lastCheck = now
     local sig = signature()
@@ -112,6 +132,7 @@ local function loop()
 end
 
 reaper.atexit(function()
+  reaper.DeleteExtState("ReaperControl", SCRIPT_NAME .. "Running", false)
   reaper.DeleteExtState(SECTION, "ItemRuler", false)
   for key in pairs(ITEM_PROPERTIES) do
     reaper.DeleteExtState(SECTION, key, false)

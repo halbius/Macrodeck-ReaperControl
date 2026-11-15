@@ -16,6 +16,7 @@ internal sealed class ReaperConfigFlow : IConfigFlow
     public const string UsernameField = "username";
     public const string PasswordField = "password";
     public const string ResourcePathField = "resourcePath";
+    public const string InstallScriptsField = "installScripts";
 
     private const string StepId = "connection";
 
@@ -52,6 +53,29 @@ internal sealed class ReaperConfigFlow : IConfigFlow
                 });
         }
 
+        // "Install/update REAPER scripts": copy the bundled Lua scripts into REAPER's Scripts folder.
+        var installed = "";
+        if (string.Equals(Values.Get(input, InstallScriptsField), "true", StringComparison.OrdinalIgnoreCase))
+        {
+            if (resourcePath is null)
+            {
+                return ConfigFlowResult.Error(BuildStep(), "Installing the scripts needs the REAPER resource path.",
+                    new Dictionary<string, LocalizedText> { [ResourcePathField] = "Set the resource path first" });
+            }
+
+            try
+            {
+                var files = ReaperScriptFiles.Install(resourcePath);
+                installed = $", {files.Count} scripts installed";
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return ConfigFlowResult.Error(BuildStep(),
+                    $"Could not copy the scripts to {ReaperScriptFiles.TargetFolder(resourcePath)}: {ex.Message}",
+                    new Dictionary<string, LocalizedText> { [InstallScriptsField] = "Copy failed" });
+            }
+        }
+
         var settings = new ReaperSettings(host, port,
             Values.Get(input, UsernameField), Values.Get(input, PasswordField), resourcePath);
 
@@ -69,7 +93,7 @@ internal sealed class ReaperConfigFlow : IConfigFlow
                 new Dictionary<string, LocalizedText> { [PortField] = "No answer from REAPER" });
         }
 
-        return ConfigFlowResult.Complete($"REAPER ({host}:{port})");
+        return ConfigFlowResult.Complete($"REAPER ({host}:{port}){installed}");
     }
 
     private static ConfigFlowStep BuildStep() => new()
@@ -95,6 +119,11 @@ internal sealed class ReaperConfigFlow : IConfigFlow
             ActionParameter.Folder(ResourcePathField, "REAPER resource path",
                 "Folder containing reaper-kb.ini. Lets you pick custom actions and scripts by name. " +
                 "Only works if REAPER runs on this computer."),
+            ActionParameter.Toggle(InstallScriptsField, "Install/update REAPER scripts",
+                "Copies the plugin's Lua scripts to Scripts/" + ReaperScriptFiles.InstallFolder +
+                " in the resource path when you save. Needs the resource path. Then run " +
+                "ReaperControl_Setup.lua once in REAPER (Actions → Load ReaScript).",
+                defaultValue: false),
         ]
     };
 }

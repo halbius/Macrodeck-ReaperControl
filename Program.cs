@@ -11,6 +11,10 @@ var builder = MacroDeckPlugin.CreatePlugin(args)
 // One shared connection: the integration fills it from the stored config, the actions use it.
 builder.Services.AddSingleton<ReaperConnection>();
 
+// Starts the background Lua scripts in REAPER when their values are needed and keeps them alive.
+builder.Services.AddSingleton<ScriptKeeper>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<ScriptKeeper>());
+
 // Polls the on/off state of the REAPER actions shown on buttons (one instance, also a hosted service).
 builder.Services.AddSingleton<CommandStateMonitor>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<CommandStateMonitor>());

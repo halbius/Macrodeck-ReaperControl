@@ -35,7 +35,8 @@ public sealed record TimecodeSnapshot(
 /// Polls the cursor position while at least one timecode widget is open (100 ms) and tells the
 /// widgets about every change.
 /// </summary>
-public sealed class TimecodeMonitor(ReaperConnection connection, ILogger<TimecodeMonitor> logger) : BackgroundService
+public sealed class TimecodeMonitor(ReaperConnection connection, ScriptKeeper scripts, ILogger<TimecodeMonitor> logger)
+    : BackgroundService
 {
     public const string ExtStateSection = "ReaperControl";
     public const string ExtStateKey = "Timecode";
@@ -107,6 +108,9 @@ public sealed class TimecodeMonitor(ReaperConnection connection, ILogger<Timecod
         {
             return;
         }
+
+        // Formats beyond the transport ones and the playback rate come from ReaperControl_Timecode.lua.
+        scripts.NeedKey(ExtStateKey);
 
         TimecodeSnapshot? next;
         try

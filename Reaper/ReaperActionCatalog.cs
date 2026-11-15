@@ -2,7 +2,8 @@ using System.Text.RegularExpressions;
 
 namespace ReaperControl.Reaper;
 
-public sealed record ReaperActionInfo(string CommandId, string Name, string Kind);
+/// <param name="Path">Script file path (SCR lines only).</param>
+public sealed record ReaperActionInfo(string CommandId, string Name, string Kind, string? Path = null);
 
 /// <summary>
 /// Reads custom actions and ReaScripts from reaper-kb.ini so they can be picked by name.
@@ -74,11 +75,22 @@ public sealed partial class ReaperActionCatalog
     /// Command id of a ReaScript loaded into REAPER's action list, found by its file name
     /// (the action list names scripts "Custom: &lt;file name&gt;"). Null if it is not loaded.
     /// </summary>
-    public string? FindScriptCommandId(string scriptFileName) =>
-        GetAll()
-            .FirstOrDefault(a => a.Kind == "Script" &&
-                                 a.Name.EndsWith(scriptFileName, StringComparison.OrdinalIgnoreCase))
-            ?.CommandId;
+    /// <remarks>
+    /// When the same file name is loaded from several places (e.g. an old copy elsewhere), the one in
+    /// <paramref name="preferredFolder" /> wins.
+    /// </remarks>
+    public string? FindScriptCommandId(string scriptFileName, string? preferredFolder = null)
+    {
+        var matches = GetAll()
+            .Where(a => a.Kind == "Script" && a.Name.EndsWith(scriptFileName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        var preferred = preferredFolder is null
+            ? null
+            // Paths are absolute or relative to REAPER's Scripts folder.
+            : matches.FirstOrDefault(a => a.Path is { } p
+                && ("/" + p.Replace('\\', '/')).Contains("/" + preferredFolder + "/", StringComparison.OrdinalIgnoreCase));
+        return (preferred ?? matches.FirstOrDefault())?.CommandId;
+    }
 
     public IEnumerable<ReaperActionInfo> Search(string? filter)
     {
@@ -107,12 +119,13 @@ public sealed partial class ReaperActionCatalog
             var kind = m.Groups["kind"].Value == "SCR" ? "Script" : "Custom action";
             var id = m.Groups["id"].Value.Trim('"');
             var name = m.Groups["name"].Value;
-            result.Add(new ReaperActionInfo("_" + id, name, kind));
+            var path = m.Groups["path"].Success ? m.Groups["path"].Value : null;
+            result.Add(new ReaperActionInfo("_" + id, name, kind, path));
         }
 
         return result;
     }
 
-    [GeneratedRegex("""^(?<kind>ACT|SCR)\s+\d+\s+(?<section>\d+)\s+(?<id>"[^"]+"|\S+)\s+"(?<name>[^"]*)""")]
+    [GeneratedRegex("""^(?<kind>ACT|SCR)\s+\d+\s+(?<section>\d+)\s+(?<id>"[^"]+"|\S+)\s+"(?<name>[^"]*)"(?:\s+"(?<path>[^"]*)")?""")]
     private static partial Regex KbLine();
 }

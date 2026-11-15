@@ -71,6 +71,17 @@ Befehlsformate:
 
 Die IDs der vordefinierten nativen Actions in `ReaperActionCatalog.WellKnown` bitte einmal in der Action List gegenprüfen.
 
+## REAPER-Scripts
+
+Einige Rückmeldungen (Item, Track, Item ruler, Timecode-Formate, Abspielrate) und „Load render preset“ brauchen die Lua-Scripts aus `ReaperScripts`. Einrichten, einmalig:
+
+1. Plugin-Einstellungen → *Erweitert*: Resource-Pfad setzen, Haken **Install/update REAPER scripts**, speichern. Die Scripts landen in `<Resource-Pfad>/Scripts/Macrodeck-ReaperControl/` (vorhandene Dateien werden überschrieben – auch nach jedem Plugin-Update so aktualisieren).
+2. REAPER: Actions → Show action list → *New action → Load ReaScript…* → `ReaperControl_Setup.lua` aus diesem Ordner wählen und ausführen. Es trägt alle Scripts in die Action List ein (`AddRemoveReaScript`). Erneut nötig nur, wenn ein Update ein neues Script mitbringt.
+
+**Kein `__startup.lua` nötig:** Das Plugin startet die Hintergrund-Scripts (ItemState, TrackState, Timecode) selbst, sobald eine Taste oder Kachel ihre Werte braucht, und hält sie mit einem Lebenszeichen am Leben (`ScriptKeeper`): alle 2 s ExtState `ReaperControl/<Name>Heartbeat`. Kommt 10 s lang keins (Macro Deck beendet, 75 s lang keine Taste mehr, die das Script braucht), beendet sich das Script selbst. Jedes Script setzt beim Start `ReaperControl/<Name>Running` und löscht es beim Ende; das Plugin startet nur, wenn das fehlt (und höchstens alle 8 s), damit REAPER nie „Script läuft schon“ fragt.
+
+Fehlt ein Script in der Action List, steht im Log „… is not in REAPER's action list“. Alte Kopien (z. B. in `Scripts/ReaperControl/`) und alte `dofile`-Zeilen in `__startup.lua` entfernen – sonst laufen zwei Instanzen; das Plugin bevorzugt die Kopie in `Macrodeck-ReaperControl`.
+
 ## Button-Status (an/aus)
 
 „Run REAPER command“ kann am Button anzeigen, ob eine Action an oder aus ist – derselbe Zustand, den REAPER als Häkchen im Menü bzw. in der Spalte *State* der Action List zeigt.
@@ -127,7 +138,7 @@ Neue Item-Einstellung mit Rückmeldung = zwei Zeilen:
 
 ## Track
 
-Action **„Track“** mit Auswahl *Command*: Mute (6), Solo (7), Unsolo All (40340, leuchtet gelb, solange irgendein Track solo ist), Pin Tracks (40000), Lock, Phase (40282). Die Rückmeldung kommt vom Script `ReaperScripts/ReaperControl_TrackState.lua` (Tabelle `TRACK_PROPERTIES`, dazu `TrackAnySolo`); es wird wie das Item-Script in `Scripts/__startup.lua` eingetragen.
+Action **„Track“** mit Auswahl *Command*: Mute (6), Solo (7), Unsolo All (40340, leuchtet gelb, solange irgendein Track solo ist), Pin Tracks (40000), Lock, Phase (40282). Die Rückmeldung kommt vom Script `ReaperScripts/ReaperControl_TrackState.lua` (Tabelle `TRACK_PROPERTIES`, dazu `TrackAnySolo`); das Plugin startet es selbst (siehe „REAPER-Scripts“).
 
 **Lock** hat eine eigene Auswahl *Lock type* (nur sichtbar, wenn *Lock* gewählt ist): Controls (41314), Height (42336), Items (43696). Controls = `LOCK 1` im Track-Teil des Chunks, Height = `B_HEIGHTLOCK`, Items = alle Items des Tracks gesperrt (43696 sperrt die Items einzeln). Tasten, die noch mit den früheren Einzeleinträgen „Lock Track Controls/Height/Items“ angelegt wurden, funktionieren weiter.
 
@@ -161,14 +172,7 @@ Das Ruler-Format ist eine Eigenschaft jedes Items (Zeile `ITEMRULER <modus> 0 0`
 - ExtState `ReaperControl/ItemRuler` = `1`…`6` (Modus aller ausgewählten Items: 1 Item time, 2 Source time, 3 Item H:M:S:F, 4 Item beats, 5 Item beats minimal, 6 Source time H:M:S:F), `0` (nichts ausgewählt / kein Ruler), `mixed` (unterschiedliche Modi).
 - Leuchtet: der Button, dessen Modus alle ausgewählten Items haben. Läuft das Script nicht, zeigen die Buttons *Unavailable*.
 
-Einrichten:
-1. Script nach `<REAPER-Resource-Pfad>/Scripts/ReaperControl/` kopieren.
-2. REAPER: Actions → Show action list → *New action → Load ReaScript…* → Script wählen.
-3. Automatisch beim REAPER-Start: in `<Resource-Pfad>/Scripts/__startup.lua` (anlegen, falls nicht vorhanden) eintragen:
-   ```lua
-   dofile(reaper.GetResourcePath() .. "/Scripts/ReaperControl/ReaperControl_ItemState.lua")
-   ```
-   Für jetzt sofort: das Script einmal in der Action List ausführen.
+Einrichten: siehe „REAPER-Scripts“ – das Plugin startet das Script selbst.
 
 Die erste Spalte (Action-ID) speichert Macro Deck in den Profilen: nach dem ersten Einsatz nicht mehr ändern, und jede ID nur einmal vergeben. Name und Command-ID dürfen sich jederzeit ändern. Macro Deck kennt keine Gruppen innerhalb eines Plugins, deshalb ordnet ein gemeinsamer Namens-Präfix („Item ruler: …“) zusammengehörige Actions.
 
@@ -179,7 +183,7 @@ Action **„Load render preset“**: öffnet den Render-Dialog mit dem gewählte
 Voraussetzungen:
 1. Im Plugin-Setup ist der **REAPER-Resource-Pfad** gesetzt (für Presetliste und Script-Suche).
 2. **SWS-Extension** und **cfillion „Apply render preset“** (ReaPack → ReaTeam Scripts) sind installiert.
-3. `ReaperScripts/ReaperControl_LoadRenderPreset.lua` nach `Scripts/ReaperControl/` kopieren und einmal in der Action List laden (*New action → Load ReaScript…*). Ausführen nicht nötig, und **nicht umbenennen** – das Plugin findet es über den Dateinamen in `reaper-kb.ini`.
+3. Scripts installiert und `ReaperControl_Setup.lua` einmal ausgeführt (siehe „REAPER-Scripts“). **Nicht umbenennen** – das Plugin findet das Script über den Dateinamen in `reaper-kb.ini`.
 
 Ablauf: Das Plugin setzt ExtState `ReaperControl/RenderPreset` = Presetname und startet das Script in derselben Anfrage; das Script wendet das Preset über cfillions Script an und öffnet den Render-Dialog (Action 40015). Liegt cfillions Script woanders, Pfad oben im Lua-Script anpassen.
 
@@ -219,11 +223,7 @@ Konfiguration: *Format*, *Show playback rate*, *Show record mode*, Rahmen, Hinte
 | Minutes:Seconds, Seconds | nein (mit Script exakt wie REAPER formatiert) |
 | Measures.Beats + Time, Samples, Hours:Minutes:Seconds:Frames, Absolute frames | ja |
 
-Script `ReaperScripts/ReaperControl_Timecode.lua`: wie das Item-Ruler-Script nach `Scripts/ReaperControl/` kopieren, laden und in `Scripts/__startup.lua` eintragen:
-
-```lua
-dofile(reaper.GetResourcePath() .. "/Scripts/ReaperControl/ReaperControl_Timecode.lua")
-```
+Script `ReaperScripts/ReaperControl_Timecode.lua`: einrichten siehe „REAPER-Scripts“; das Plugin startet es, solange eine Timecode-Kachel offen ist.
 
 Technik: `TimecodeMonitor` fragt nur, solange eine Timecode-Kachel offen ist, alle 100 ms `TRANSPORT`, `GET/EXTSTATE/ReaperControl/Timecode` und `…/PlayRate` sowie `GET/40252;GET/40076;GET/40253` ab; das Script schreibt die Position in allen Formaten über `format_timestr_pos`.
 

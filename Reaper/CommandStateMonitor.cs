@@ -19,6 +19,7 @@ namespace ReaperControl.Reaper;
 public sealed class CommandStateMonitor(
     ReaperConnection connection,
     IPluginCatalogNotifier notifier,
+    ScriptKeeper scripts,
     ILogger<CommandStateMonitor> logger) : BackgroundService
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(250);
@@ -40,6 +41,11 @@ public sealed class CommandStateMonitor(
     /// </summary>
     public string? GetValue(StateSource source)
     {
+        if (source is ExtStateValue { Section: "ReaperControl" } ext)
+        {
+            scripts.NeedKey(ext.Name); // starts the publishing Lua script if it is not running
+        }
+
         var entry = _entries.GetOrAdd(source.Key, _ => new Entry());
         entry.Source ??= source;
         var firstAsk = entry.LastWanted == 0;
