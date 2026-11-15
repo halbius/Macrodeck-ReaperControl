@@ -56,6 +56,8 @@ public sealed class ReaperIntegration : IPluginIntegration, IConfigFlowProvider,
             new TransportAction(connection, stateMonitor, loggerFactory.CreateLogger<TransportAction>()),
             new ItemAction(connection, stateMonitor, loggerFactory.CreateLogger<ItemAction>()),
             new TrackAction(connection, stateMonitor, loggerFactory.CreateLogger<TrackAction>()),
+            new ToolbarAction(connection, stateMonitor, loggerFactory.CreateLogger<ToolbarAction>()),
+	    new ViewAction(connection, stateMonitor, loggerFactory.CreateLogger<ViewAction>()),
             .. FixedCommands.All.Select(c => new FixedCommandAction(c, connection, stateMonitor, fixedLogger))
         ];
     }

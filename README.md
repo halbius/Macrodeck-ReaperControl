@@ -133,6 +133,14 @@ Action **„Track“** mit Auswahl *Command*: Mute (6), Solo (7), Unsolo All (40
 
 Varianten wie bei Lock: in `Commands` beim Eintrag `Options: [...]` (je `new(Key, Name, Command-ID, State)`) und `OptionsLabel:` angeben – `CommandListAction` blendet dafür ein eigenes Auswahlfeld ein.
 
+## Toolbar
+
+Action **„Toolbar“**: öffnet/schließt eine der schwebenden Toolbars 1–32. Einstellungen: *Toolbar* (Nummer), *Open* (*As toolbar* / *As menu*), bei *As toolbar* zusätzlich *Open toolbar at mouse cursor*. Keine Rückmeldung; die Taste zeigt den Namen der Toolbar (`title=` im Abschnitt `[Floating toolbar <n>]` von `reaper-menu.ini`, braucht den Ressourcenpfad in den Plugin-Einstellungen), sonst „Toolbar <n>“. Die Command-IDs liegen in Blöcken (REAPER hat die Toolbars nach und nach erweitert) und stehen in `ToolbarAction.CommandId`.
+
+## View
+
+Action **„View“** mit Auswahl *Command*: blendet ein Fenster aus dem View-Menü ein/aus (Media Explorer, Routing Matrix, Track Grouping Matrix, Track Wiring, Project Bay, Track Manager, Track Group Manager, Envelope Manager, Screensets / Layouts, Region / Marker Manager, Ruler Lane Manager, Media Item Properties). Ohne Rückmeldung, Beschriftung = Fenstername. Weiteres Fenster: eine Zeile in `Commands` in `Actions/ViewAction.cs`. Technik: `ShowsState => false` in `CommandListAction` (ein einziger Zustand nur mit Beschriftung, kein *Show text*).
+
 ### Aufbau Transport / Item / Track
 
 Beide erben von `Actions/CommandListAction.cs` (Zustands-IDs werden dort kurz gehalten: Macro Deck erlaubt bei Actions mit Icon nur ca. 26 Zeichen), das Ausführen, Status, Farben, Icons und *Show text* erledigt. Eine eigene Liste braucht nur Id, Name, Beschreibung und die Liste `Commands`. Unterschied ist nur, woher „an“ kommt:
