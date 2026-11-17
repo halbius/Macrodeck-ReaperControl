@@ -93,6 +93,9 @@ Drei beschreibbare Variablen für Macro Decks Slider-Widget (im Slider als Varia
 | `reaper_volume` – REAPER: Volume (follows context) | Tracks oder Items, je nach zuletzt angeklicktem Bereich (Envelopes: inaktiv) |
 
 - Bereich −60 … +12 dB in 0,1-dB-Schritten, −60 = −inf. Angezeigt wird der lauteste ausgewählte Track bzw. das lauteste Item; ohne Auswahl ist der Fader inaktiv.
+- **Beschriftung:** Text-Variablen für das *Label* des Sliders (Variablen im Label: `{{ vars.name }}`), z. B. `{{ vars.reaper_track_number }}: {{ vars.reaper_track_name }}`:
+  `reaper_track_name`, `reaper_track_number`, `reaper_item_name` (aktiver Take) – jeweils des lautesten ausgewählten, bei mehreren mit „(+n)“, ohne Auswahl leer; `reaper_context` („Track“/„Item“/„Envelope“); `reaper_volume_target` (Name dessen, worauf der Kontext-Fader gerade wirkt).
+- Den Wert zeigt der Slider erst mit seiner Einstellung *Show value* (Standard: aus – Einstellung des Sliders, nicht des Plugins).
 - **Trim:** Der lauteste wird auf den Fader-Wert gesetzt, alle anderen ausgewählten um denselben Betrag verschoben (Abstände bleiben).
 - **Undo:** eine Fader-Bewegung = ein Undo-Schritt, 0,7 s nach dem letzten Wert.
 - Technik: Das Plugin schreibt `ReaperControl/<Track|Item>VolumeSet` = `<Nr>|<dB>`; `ReaperControl_TrackState.lua` / `ReaperControl_ItemState.lua` setzen die Lautstärke (`D_VOL`) und veröffentlichen `<Track|Item>Volume`; `…VolumeCommit` setzt den Undo-Punkt. Die Kontext-Variante nutzt `ReaperControl_Context.lua`. Alle Scripts startet das Plugin selbst.

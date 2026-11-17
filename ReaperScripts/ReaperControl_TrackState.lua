@@ -120,14 +120,20 @@ local function from_db(db)
   return 10 ^ (math.min(db, VOL_MAX) / 20)
 end
 
-local function loudest_db()
-  local loudest
-  for i = 0, reaper.CountSelectedTracks(0) - 1 do
+-- The loudest selected track (in dB, the object itself) and how many are selected.
+local function loudest()
+  local loudestDb, loudestObj
+  local count = reaper.CountSelectedTracks(0)
+  for i = 0, count - 1 do
     local obj = reaper.GetSelectedTrack(0, i)
     local db = to_db(reaper.GetMediaTrackInfo_Value(obj, "D_VOL"))
-    if not loudest or db > loudest then loudest = db end
+    if not loudestDb or db > loudestDb then loudestDb, loudestObj = db, obj end
   end
-  return loudest
+  return loudestDb, loudestObj, count
+end
+
+local function loudest_db()
+  return (loudest())
 end
 
 local function volume_text()
@@ -144,6 +150,21 @@ local function apply_volume(target)
     local value = from_db(to_db(reaper.GetMediaTrackInfo_Value(obj, "D_VOL")) + delta)
     reaper.SetMediaTrackInfo_Value(obj, "D_VOL", value)
   end
+end
+
+-- Names for the fader label (Macro Deck variables reaper_track_name / reaper_track_number): the loudest
+-- selected track, i.e. the one whose volume the fader shows, plus "(+n)" for the other selected ones.
+-- Empty when nothing is selected.
+local function publish_names()
+  local _, track, count = loudest()
+  if not track then
+    publish("TrackName", "")
+    publish("TrackNumber", "")
+    return
+  end
+  local _, name = reaper.GetTrackName(track)
+  publish("TrackName", count > 1 and string.format("%s (+%d)", name, count - 1) or name)
+  publish("TrackNumber", tostring(math.floor(reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER"))))
 end
 
 local lastVolSet = reaper.GetExtState(SECTION, "TrackVolumeSet")
@@ -174,6 +195,7 @@ end
 
 local function update()
   publish("TrackVolume", volume_text())
+  publish_names()
   for key, prop in pairs(TRACK_PROPERTIES) do
     publish(key, common(function(track)
       local on
@@ -224,6 +246,8 @@ local function loop()
 end
 
 reaper.atexit(function()
+  reaper.DeleteExtState(SECTION, "TrackName", false)
+  reaper.DeleteExtState(SECTION, "TrackNumber", false)
   reaper.DeleteExtState(SECTION, "TrackVolume", false)
   reaper.DeleteExtState("ReaperControl", SCRIPT_NAME .. "Running", false)
   for key in pairs(TRACK_PROPERTIES) do

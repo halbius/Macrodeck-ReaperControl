@@ -99,14 +99,20 @@ local function from_db(db)
   return 10 ^ (math.min(db, VOL_MAX) / 20)
 end
 
-local function loudest_db()
-  local loudest
-  for i = 0, reaper.CountSelectedMediaItems(0) - 1 do
+-- The loudest selected item (in dB, the object itself) and how many are selected.
+local function loudest()
+  local loudestDb, loudestObj
+  local count = reaper.CountSelectedMediaItems(0)
+  for i = 0, count - 1 do
     local obj = reaper.GetSelectedMediaItem(0, i)
     local db = to_db(reaper.GetMediaItemInfo_Value(obj, "D_VOL"))
-    if not loudest or db > loudest then loudest = db end
+    if not loudestDb or db > loudestDb then loudestDb, loudestObj = db, obj end
   end
-  return loudest
+  return loudestDb, loudestObj, count
+end
+
+local function loudest_db()
+  return (loudest())
 end
 
 local function volume_text()
@@ -124,6 +130,20 @@ local function apply_volume(target)
     reaper.SetMediaItemInfo_Value(obj, "D_VOL", value)
   end
   reaper.UpdateArrange()
+end
+
+-- Name for the fader label (Macro Deck variable reaper_item_name): the active take of the loudest
+-- selected item, i.e. the one whose volume the fader shows, plus "(+n)" for the other selected ones.
+-- Empty when nothing is selected.
+local function publish_names()
+  local _, item, count = loudest()
+  if not item then
+    publish("ItemName", "")
+    return
+  end
+  local take = reaper.GetActiveTake(item)
+  local name = take and reaper.GetTakeName(take) or ""
+  publish("ItemName", count > 1 and string.format("%s (+%d)", name, count - 1) or name)
 end
 
 local lastVolSet = reaper.GetExtState(SECTION, "ItemVolumeSet")
@@ -154,6 +174,7 @@ end
 
 local function update()
   publish("ItemVolume", volume_text())
+  publish_names()
   publish("ItemRuler", common(ruler_mode))
   for key, prop in pairs(ITEM_PROPERTIES) do
     publish(key, common(function(item)
@@ -204,6 +225,7 @@ local function loop()
 end
 
 reaper.atexit(function()
+  reaper.DeleteExtState(SECTION, "ItemName", false)
   reaper.DeleteExtState(SECTION, "ItemVolume", false)
   reaper.DeleteExtState("ReaperControl", SCRIPT_NAME .. "Running", false)
   reaper.DeleteExtState(SECTION, "ItemRuler", false)

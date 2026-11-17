@@ -29,6 +29,11 @@ public sealed class VolumeVariables(
     public const string TrackVolumeId = "track-volume";
     public const string ItemVolumeId = "item-volume";
     public const string ContextVolumeId = "context-volume";
+    public const string TrackNameId = "track-name";
+    public const string TrackNumberId = "track-number";
+    public const string ItemNameId = "item-name";
+    public const string ContextId = "context";
+    public const string VolumeTargetId = "volume-target";
 
     private const string Section = "ReaperControl";
     private const double MinDb = -60, MaxDb = 12, StepDb = 0.1;
@@ -49,7 +54,27 @@ public sealed class VolumeVariables(
             "Volume of the selected items (loudest one shown; moving trims all of them)."),
         Define("reaper_volume", ContextVolumeId, "REAPER: Volume (follows context)",
             "Track or item volume, depending on what was clicked last in REAPER."),
+        // Texts for fader labels, e.g. Label "{{ vars.reaper_track_number }}: {{ vars.reaper_track_name }}".
+        DefineText("reaper_track_name", TrackNameId, "REAPER: Track name",
+            "Name of the loudest selected track (the one the track fader shows), \"(+n)\" for more selected."),
+        DefineText("reaper_track_number", TrackNumberId, "REAPER: Track number",
+            "Number of the loudest selected track."),
+        DefineText("reaper_item_name", ItemNameId, "REAPER: Item name",
+            "Active take name of the loudest selected item, \"(+n)\" for more selected."),
+        DefineText("reaper_context", ContextId, "REAPER: Context",
+            "\"Track\", \"Item\" or \"Envelope\": what was clicked last in REAPER."),
+        DefineText("reaper_volume_target", VolumeTargetId, "REAPER: Volume target",
+            "Track or item name the context volume fader controls right now."),
     ];
+
+    private static VariableDefinition DefineText(string name, string id, string displayName, string description) =>
+        VariableDefinition.Eager(name, VariableType.Text, refreshInterval: TimeSpan.FromMilliseconds(500))
+            with
+            {
+                Id = id,
+                DisplayName = displayName,
+                Description = description
+            };
 
     private static VariableDefinition Define(string name, string id, string displayName, string description) =>
         VariableDefinition.Eager(name, VariableType.Numeric, decimalPlaces: 1,
@@ -64,11 +89,33 @@ public sealed class VolumeVariables(
                 Write = new VariableWriteCapability { CommitOnRelease = false }
             };
 
-    public static bool Owns(string localId) => localId is TrackVolumeId or ItemVolumeId or ContextVolumeId;
+    public static bool Owns(string localId) =>
+        localId is TrackVolumeId or ItemVolumeId or ContextVolumeId
+            or TrackNameId or TrackNumberId or ItemNameId or ContextId or VolumeTargetId;
 
     /// <summary>The current value, from the state monitor's cache (never talks to REAPER itself).</summary>
     public VariableReading Read(string localId)
     {
+        switch (localId)
+        {
+            case TrackNameId:
+                return Text("TrackName");
+            case TrackNumberId:
+                return Text("TrackNumber");
+            case ItemNameId:
+                return Text("ItemName");
+            case ContextId:
+                return VariableReading.Of(monitor.GetValue(ContextSource) switch
+                {
+                    "tracks" => "Track",
+                    "items" => "Item",
+                    "envelopes" => "Envelope",
+                    _ => ""
+                });
+            case VolumeTargetId:
+                return KindOf(ContextVolumeId) is { } target ? Text(target + "Name") : VariableReading.Of("");
+        }
+
         if (KindOf(localId) is not { } kind)
         {
             return VariableReading.Unavailable;
@@ -79,6 +126,10 @@ public sealed class VolumeVariables(
             ? VariableReading.Of(Math.Round(db, 1), MinDb, MaxDb, StepDb)
             : VariableReading.Unavailable; // script not running yet, or "-" = nothing selected
     }
+
+    /// <summary>A text the scripts publish; empty while nothing is selected or the script is not running.</summary>
+    private VariableReading Text(string key) =>
+        VariableReading.Of(monitor.GetValue(new ExtStateValue(Section, key)) ?? "");
 
     public async ValueTask<VariableWriteResult> WriteAsync(
         string localId, object? value, CancellationToken cancellationToken)
