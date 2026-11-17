@@ -28,5 +28,9 @@ builder.Services.AddSingleton<MarkerFilterState>();
 builder.Services.AddSingleton<TimecodeMonitor>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<TimecodeMonitor>());
 
+// Event "REAPER context changed" (tracks / items / envelopes) - polls only while a trigger uses it.
+builder.Services.AddSingleton<ContextMonitor>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<ContextMonitor>());
+
 var plugin = builder.Build();
 await plugin.RunAsync();

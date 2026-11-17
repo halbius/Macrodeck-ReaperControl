@@ -15,6 +15,7 @@ public static class ReaperScriptFiles
         new("ItemState", "ReaperControl_ItemState.lua"),
         new("TrackState", "ReaperControl_TrackState.lua"),
         new("Timecode", "ReaperControl_Timecode.lua"),
+        new("Context", "ReaperControl_Context.lua"),
     ];
 
     /// <summary>
@@ -25,6 +26,7 @@ public static class ReaperScriptFiles
         _ when key.StartsWith("Item", StringComparison.Ordinal) => Background[0],
         _ when key.StartsWith("Track", StringComparison.Ordinal) => Background[1],
         "Timecode" or "PlayRate" => Background[2],
+        "Context" => Background[3],
         _ => null
     };
 

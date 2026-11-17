@@ -82,6 +82,14 @@ Einige Rückmeldungen (Item, Track, Item ruler, Timecode-Formate, Abspielrate) u
 
 Fehlt ein Script in der Action List, steht im Log „… is not in REAPER's action list“. Alte Kopien (z. B. in `Scripts/ReaperControl/`) und alte `dofile`-Zeilen in `__startup.lua` entfernen – sonst laufen zwei Instanzen; das Plugin bevorzugt die Kopie in `Macrodeck-ReaperControl`.
 
+## Trigger „REAPER context changed“
+
+Ereignis für Macro Decks Trigger: feuert, wenn der zuletzt angeklickte Bereich in REAPER wechselt – *Tracks* (TCP/Mixer), *Items* oder *Envelopes* (`GetCursorContext2`). Im Trigger den Kontext wählen und z. B. die eingebaute Action *Change folder* daranhängen: ein Trigger pro Kontext und Ordner.
+
+- Feuert erst, wenn der Kontext 300 ms gleich bleibt (schnelles Hin- und Herklicken springt nicht mit), und nur beim Wechsel.
+- Läuft nur, solange mindestens ein Trigger dieses Ereignis nutzt: Dann fragt `ContextMonitor` alle 150 ms `ReaperControl/Context` ab und hält `ReaperControl_Context.lua` am Leben; ohne Trigger läuft weder das eine noch das andere.
+- Braucht die installierten Scripts und ein erneutes Ausführen von `ReaperControl_Setup.lua` (neues Script).
+
 ## Button-Status (an/aus)
 
 „Run REAPER command“ kann am Button anzeigen, ob eine Action an oder aus ist – derselbe Zustand, den REAPER als Häkchen im Menü bzw. in der Spalte *State* der Action List zeigt.

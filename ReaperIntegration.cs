@@ -10,6 +10,7 @@ using ReaperControl.Actions;
 using ReaperControl.ConfigFlow;
 using ReaperControl.Reaper;
 using ReaperControl.Widgets;
+using MacroDeck.Sdk.Events;
 
 namespace ReaperControl;
 
@@ -21,7 +22,7 @@ namespace ReaperControl;
 /// InitializeAsync/ShutdownAsync can run several times per process (reconnects, config
 /// changes), so both are idempotent.
 /// </remarks>
-public sealed class ReaperIntegration : IPluginIntegration, IConfigFlowProvider, IWidgetTypeProvider, IUiProvider, IVariableProvider
+public sealed class ReaperIntegration : IPluginIntegration, IConfigFlowProvider, IWidgetTypeProvider, IUiProvider, IVariableProvider, IEventProvider
 {
     private readonly ReaperConnection _connection;
     private readonly ILogger<ReaperIntegration> _logger;
@@ -90,6 +91,10 @@ public sealed class ReaperIntegration : IPluginIntegration, IConfigFlowProvider,
         ValueTask.FromResult(localId == NavFilteredVariableId
             ? VariableReading.Of(_markerFilter.NavigationFollowsFilter)
             : VariableReading.Unavailable);
+
+// ----- Events (triggers) -----
+
+    public IReadOnlyList<EventDefinition> EventDefinitions { get; } = [ContextMonitor.Definition];
 
     // ----- Widget types (the "REAPER timecode" tile) -----
 
