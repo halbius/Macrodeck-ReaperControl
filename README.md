@@ -82,6 +82,21 @@ Einige Rückmeldungen (Item, Track, Item ruler, Timecode-Formate, Abspielrate) u
 
 Fehlt ein Script in der Action List, steht im Log „… is not in REAPER's action list“. Alte Kopien (z. B. in `Scripts/ReaperControl/`) und alte `dofile`-Zeilen in `__startup.lua` entfernen – sonst laufen zwei Instanzen; das Plugin bevorzugt die Kopie in `Macrodeck-ReaperControl`.
 
+## Fader (Slider-Widget)
+
+Drei beschreibbare Variablen für Macro Decks Slider-Widget (im Slider als Variable wählen):
+
+| Variable | Steuert |
+| --- | --- |
+| `reaper_track_volume` – REAPER: Track volume | ausgewählte Tracks |
+| `reaper_item_volume` – REAPER: Item volume | ausgewählte Items |
+| `reaper_volume` – REAPER: Volume (follows context) | Tracks oder Items, je nach zuletzt angeklicktem Bereich (Envelopes: inaktiv) |
+
+- Bereich −60 … +12 dB in 0,1-dB-Schritten, −60 = −inf. Angezeigt wird der lauteste ausgewählte Track bzw. das lauteste Item; ohne Auswahl ist der Fader inaktiv.
+- **Trim:** Der lauteste wird auf den Fader-Wert gesetzt, alle anderen ausgewählten um denselben Betrag verschoben (Abstände bleiben).
+- **Undo:** eine Fader-Bewegung = ein Undo-Schritt, 0,7 s nach dem letzten Wert.
+- Technik: Das Plugin schreibt `ReaperControl/<Track|Item>VolumeSet` = `<Nr>|<dB>`; `ReaperControl_TrackState.lua` / `ReaperControl_ItemState.lua` setzen die Lautstärke (`D_VOL`) und veröffentlichen `<Track|Item>Volume`; `…VolumeCommit` setzt den Undo-Punkt. Die Kontext-Variante nutzt `ReaperControl_Context.lua`. Alle Scripts startet das Plugin selbst.
+
 ## Trigger „REAPER context changed“
 
 Ereignis für Macro Decks Trigger: feuert, wenn der zuletzt angeklickte Bereich in REAPER wechselt – *Tracks* (TCP/Mixer), *Items* oder *Envelopes* (`GetCursorContext2`). Im Trigger den Kontext wählen und z. B. die eingebaute Action *Change folder* daranhängen: ein Trigger pro Kontext und Ordner.

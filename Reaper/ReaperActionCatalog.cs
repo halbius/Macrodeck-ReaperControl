@@ -119,13 +119,14 @@ public sealed partial class ReaperActionCatalog
             var kind = m.Groups["kind"].Value == "SCR" ? "Script" : "Custom action";
             var id = m.Groups["id"].Value.Trim('"');
             var name = m.Groups["name"].Value;
-            var path = m.Groups["path"].Success ? m.Groups["path"].Value : null;
+            // REAPER quotes the path only when it contains spaces.
+            var path = m.Groups["path"].Success ? m.Groups["path"].Value.Trim('"') : null;
             result.Add(new ReaperActionInfo("_" + id, name, kind, path));
         }
 
         return result;
     }
 
-    [GeneratedRegex("""^(?<kind>ACT|SCR)\s+\d+\s+(?<section>\d+)\s+(?<id>"[^"]+"|\S+)\s+"(?<name>[^"]*)"(?:\s+"(?<path>[^"]*)")?""")]
+    [GeneratedRegex("""^(?<kind>ACT|SCR)\s+\d+\s+(?<section>\d+)\s+(?<id>"[^"]+"|\S+)\s+"(?<name>[^"]*)"(?:\s+(?<path>"[^"]*"|\S+))?""")]
     private static partial Regex KbLine();
 }

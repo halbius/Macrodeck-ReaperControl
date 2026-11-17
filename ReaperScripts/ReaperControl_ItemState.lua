@@ -82,7 +82,78 @@ local function signature()
   return table.concat(parts, "|")
 end
 
+-- Volume fader (Macro Deck variable "REAPER: Item volume"): "ItemVolume" is the volume of the
+-- loudest selected item in dB ("-" when nothing is selected). The plugin sends "ItemVolumeSet" =
+-- "<seq>|<dB>": the loudest one is set to that value and all other selected items move by the same
+-- amount (trim, spacing kept). "ItemVolumeCommit" = "<seq>" after the fader was let go makes the
+-- whole movement one undo step.
+local VOL_MIN, VOL_MAX = -60, 12 -- dB; VOL_MIN and below = -inf
+
+local function to_db(v)
+  if v <= 0 then return VOL_MIN end
+  return math.max(VOL_MIN, 20 * math.log(v, 10))
+end
+
+local function from_db(db)
+  if db <= VOL_MIN then return 0 end
+  return 10 ^ (math.min(db, VOL_MAX) / 20)
+end
+
+local function loudest_db()
+  local loudest
+  for i = 0, reaper.CountSelectedMediaItems(0) - 1 do
+    local obj = reaper.GetSelectedMediaItem(0, i)
+    local db = to_db(reaper.GetMediaItemInfo_Value(obj, "D_VOL"))
+    if not loudest or db > loudest then loudest = db end
+  end
+  return loudest
+end
+
+local function volume_text()
+  local db = loudest_db()
+  return db and string.format("%.2f", db) or "-"
+end
+
+local function apply_volume(target)
+  local loudest = loudest_db()
+  if not loudest then return end
+  local delta = math.min(target, VOL_MAX) - loudest
+  for i = 0, reaper.CountSelectedMediaItems(0) - 1 do
+    local obj = reaper.GetSelectedMediaItem(0, i)
+    local value = from_db(to_db(reaper.GetMediaItemInfo_Value(obj, "D_VOL")) + delta)
+    reaper.SetMediaItemInfo_Value(obj, "D_VOL", value)
+  end
+  reaper.UpdateArrange()
+end
+
+local lastVolSet = reaper.GetExtState(SECTION, "ItemVolumeSet")
+local lastVolCommit = reaper.GetExtState(SECTION, "ItemVolumeCommit")
+local undoPending = false
+
+-- Called on every defer cycle: fader moves must not wait for CHECK_INTERVAL.
+local function handle_volume()
+  local set = reaper.GetExtState(SECTION, "ItemVolumeSet")
+  if set ~= lastVolSet then
+    lastVolSet = set
+    local db = tonumber(set:match("|(.+)$") or "")
+    if db then
+      apply_volume(db)
+      undoPending = true
+      publish("ItemVolume", volume_text())
+    end
+  end
+  local commit = reaper.GetExtState(SECTION, "ItemVolumeCommit")
+  if commit ~= lastVolCommit then
+    lastVolCommit = commit
+    if undoPending then
+      undoPending = false
+      reaper.Undo_OnStateChange2(0, "Item volume (Macro Deck)")
+    end
+  end
+end
+
 local function update()
+  publish("ItemVolume", volume_text())
   publish("ItemRuler", common(ruler_mode))
   for key, prop in pairs(ITEM_PROPERTIES) do
     publish(key, common(function(item)
@@ -119,6 +190,7 @@ end
 local function loop()
   local now = reaper.time_precise()
   if not plugin_alive(now) then return end -- no defer: the script ends, atexit cleans up
+  handle_volume()
   if now - lastCheck >= CHECK_INTERVAL then
     lastCheck = now
     local sig = signature()
@@ -132,6 +204,7 @@ local function loop()
 end
 
 reaper.atexit(function()
+  reaper.DeleteExtState(SECTION, "ItemVolume", false)
   reaper.DeleteExtState("ReaperControl", SCRIPT_NAME .. "Running", false)
   reaper.DeleteExtState(SECTION, "ItemRuler", false)
   for key in pairs(ITEM_PROPERTIES) do

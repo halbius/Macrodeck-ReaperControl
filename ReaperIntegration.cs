@@ -28,6 +28,7 @@ public sealed class ReaperIntegration : IPluginIntegration, IConfigFlowProvider,
     private readonly ILogger<ReaperIntegration> _logger;
     private readonly TimecodeMonitor _timecode;
     private readonly MarkerFilterState _markerFilter;
+    private readonly VolumeVariables _volume;
 
     public ReaperIntegration(
         ReaperConnection connection,
@@ -41,6 +42,7 @@ public sealed class ReaperIntegration : IPluginIntegration, IConfigFlowProvider,
         _timecode = timecode;
         _markerFilter = markerFilter;
         _logger = loggerFactory.CreateLogger<ReaperIntegration>();
+        _volume = new VolumeVariables(connection, stateMonitor, loggerFactory.CreateLogger<VolumeVariables>());
 
         // Read by the host before InitializeAsync: build without I/O.
         var fixedLogger = loggerFactory.CreateLogger<FixedCommandAction>();
@@ -84,13 +86,25 @@ public sealed class ReaperIntegration : IPluginIntegration, IConfigFlowProvider,
                 Id = NavFilteredVariableId,
                 DisplayName = "REAPER: next/previous marker filtered",
                 Description = "True while \"Go to next / previous marker\" buttons follow the marker filter."
-            }
+            },
+        // Fader (Slider widget) targets: track / item / context volume.
+        .. VolumeVariables.Definitions
     ];
 
-    public ValueTask<VariableReading> ReadAsync(string localId, CancellationToken cancellationToken = default) =>
-        ValueTask.FromResult(localId == NavFilteredVariableId
-            ? VariableReading.Of(_markerFilter.NavigationFollowsFilter)
-            : VariableReading.Unavailable);
+public ValueTask<VariableReading> ReadAsync(string localId, CancellationToken cancellationToken = default) =>
+    ValueTask.FromResult(localId switch
+    {
+        NavFilteredVariableId => VariableReading.Of(_markerFilter.NavigationFollowsFilter),
+        _ when VolumeVariables.Owns(localId) => _volume.Read(localId),
+        _ => VariableReading.Unavailable
+    });
+
+// Only called for variables that declare Write (the volume faders).
+public ValueTask<VariableWriteResult> SetValueAsync(
+    string localId, object? value, CancellationToken cancellationToken = default) =>
+    VolumeVariables.Owns(localId)
+        ? _volume.WriteAsync(localId, value, cancellationToken)
+        : ValueTask.FromResult(VariableWriteResult.NotWritable());
 
 // ----- Events (triggers) -----
 
