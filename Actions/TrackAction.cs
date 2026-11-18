@@ -55,7 +55,7 @@ public sealed class TrackAction(
                 new("lock-height", "Lock Track Height", "42336", SelectedTracks("TrackLockHeight")),
                 new("lock-items", "Lock Track Items", "43696", SelectedTracks("TrackLockItems")),
             ]),
-        new("phase", "Track Phase", "40282", State: SelectedTracks("TrackPhase"), OnColor: "#308ac5", OffColor: "#818e97"),
+        new("phase", "Track Phase", "40282", Icon: "gen_phase_norm", IconWhenOn: "gen_phase_inv", State: SelectedTracks("TrackPhase"), OnColor: "#308ac5", OffColor: "#818e97"),
 
     ];
 
