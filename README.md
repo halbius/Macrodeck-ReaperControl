@@ -162,6 +162,10 @@ Neue Item-Einstellung mit Rückmeldung = zwei Zeilen:
 1. `Actions/ItemAction.cs`: `new("lock", "Lock", "<Command-ID>", State: SelectedItems("ItemLock")),`
 2. Lua-Script, Tabelle `ITEM_PROPERTIES`: `ItemLock = "C_LOCK",` (Parametername von `GetMediaItemInfo_Value`)
 
+## Item: Open in editor
+
+Action **„Item: Open in editor“**: öffnet die ausgewählten Items (oder Kopien davon) im primären/sekundären externen Editor – 40109 / 40202 (Items), 40132 / 40203 (Kopien). Ohne Rückmeldung. Beschriftung „Open items in <Editor>“ bzw. „Open item copies in <Editor>“: Der Editor kommt aus `reaper.ini` (`[extedit]`, `__default__=<primär>|<sekundär>`, braucht den Resource-Pfad), gekürzt nach den Regeln in `EditorNames.Rules` („iZotope RX 11 Audio Editor.exe“ → „RX11“, „Sequoia_x64.exe“ → „Sequoia“). Das Feld *Editor name* überschreibt den Namen pro Taste.
+
 ## Track
 
 Action **„Track“** mit Auswahl *Command*: Mute (6), Solo (7), Unsolo All (40340, leuchtet gelb, solange irgendein Track solo ist), Pin Tracks (40000), Lock, Phase (40282). Die Rückmeldung kommt vom Script `ReaperScripts/ReaperControl_TrackState.lua` (Tabelle `TRACK_PROPERTIES`, dazu `TrackAnySolo`); das Plugin startet es selbst (siehe „REAPER-Scripts“).
@@ -185,11 +189,10 @@ Beide erben von `Actions/CommandListAction.cs` (Zustands-IDs werden dort kurz ge
 - `State: Playing / Paused` – Transport-Status (Web-Interface, kein Script),
 - `State: SelectedItems("…")` – Wert vom Lua-Script.
 
-„Item ruler“ ist älter und eigenständig; es funktioniert genauso, nur mit fest eingebauter Statusquelle.
 
 ## Item ruler
 
-Action **„Item ruler“** mit Auswahl *Ruler mode*: Item time (42312), Item H:M:S:F (42314), Item beats (42315), Item beats, minimal (42359), Source time (42313), Source time H:M:S:F (42358). Setzt den Modus für die ausgewählten Items; Beschriftung = Modusname, leuchtet, solange die ausgewählten Items diesen Modus haben.
+In der Action **„Item“**: Eintrag *Item Ruler* mit Auswahl *Ruler mode* (früher eigene Action „Item ruler“, Tasten von damals neu anlegen): Item time (42312), Item H:M:S:F (42314), Item beats (42315), Item beats, minimal (42359), Source time (42313), Source time H:M:S:F (42358). Setzt den Modus für die ausgewählten Items; Beschriftung = Modusname, leuchtet, solange die ausgewählten Items diesen Modus haben.
 
 ### Status-Script
 

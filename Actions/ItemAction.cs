@@ -44,10 +44,28 @@ public sealed class ItemAction(
         new("lock", "Lock", "40687", Icon: "lock-open", IconWhenOn: "lock-closed", State: SelectedItems("ItemLock"), OnColor: "#b82323", OffColor: "#7c5151"),
         new("play-all-takes", "Play All Takes", "40437", State: SelectedItems("ItemPlayAllTakes"), OnColor: "#b6c530", OffColor: "#717547"),
         new("fx-chain", "FX Chain", "40638", State: SelectedItems("ItemFXChain"), OnColor: "#b6c530", OffColor: "#717547"),
+        // Item settings → Display item ruler: one entry, the mode chosen in "Ruler mode". Lit while all
+        // selected items use that mode. The ITEMRULER values the script publishes do not follow the
+        // menu order - they were observed in REAPER. Keys as in the former "Item ruler" action.
+        new("item-ruler", "Item Ruler", "42312",
+            OptionsLabel: "Ruler mode",
+            Options:
+            [
+                new("item-time", "Item time", "42312", Ruler("1")),
+                new("item-hmsf", "Item H:M:S:F", "42314", Ruler("3")),
+                new("item-beats", "Item beats", "42315", Ruler("4")),
+                new("item-beats-minimal", "Item beats, minimal", "42359", Ruler("5")),
+                new("source-time", "Source time", "42313", Ruler("2")),
+                new("source-time-hmsf", "Source time H:M:S:F", "42358", Ruler("6")),
+            ]),
 
     ];
 
     /// <summary>On while all selected items have this setting on (published by the Lua script).</summary>
     private static StateRule SelectedItems(string extStateKey) =>
         StateRule.ExtStateEquals("ReaperControl", extStateKey, "1");
+
+    /// <summary>On while all selected items show the item ruler in this mode (ExtState "ItemRuler").</summary>
+    private static StateRule Ruler(string itemRulerValue) =>
+        StateRule.ExtStateEquals("ReaperControl", "ItemRuler", itemRulerValue);
 }
