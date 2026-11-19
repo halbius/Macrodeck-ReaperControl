@@ -43,7 +43,7 @@ public sealed class TransportAction(
             Icon: "play", IconWhenOn: "stop-move-editcursor", State: Playing),
         // Lit (full icon) only while paused; dimmed while playing or stopped.
         new("pause", "Pause", "1008", Icon: "pause", State: Paused),
-        new("repeat", "Repeat", "1068", Icon: "repeat"),
+        new("repeat", "Repeat", "1068", Icon: "repeat-dim", IconWhenOn: "repeat"),
         new("stop-at-loop-end", "Stop at loop end", "41834"),
         // Same icon either way (IconWhenOn = Icon: never dimmed); lit while playing.
         new("play-skip-selection", "Play, Skip Timeline Selection", "40317",
