@@ -43,11 +43,11 @@ public sealed class TransportAction(
             Icon: "play", IconWhenOn: "stop-move-editcursor", State: Playing),
         // Lit (full icon) only while paused; dimmed while playing or stopped.
         new("pause", "Pause", "1008", Icon: "pause", State: Paused),
-        new("repeat", "Repeat", "1068", Icon: "repeat-dim", IconWhenOn: "repeat"),
+        new("repeat", "Repeat", "1068", Icon: "repeat-dim"),
         new("stop-at-loop-end", "Stop at loop end", "41834"),
         // Same icon either way (IconWhenOn = Icon: never dimmed); lit while playing.
         new("play-skip-selection", "Play, Skip Timeline Selection", "40317",
-            Icon: "play", IconWhenOn: "play", State: Playing),
+            Icon: "play-skip-selection", State: Playing),
         // Red while recording, dark red otherwise (full icon while recording, dimmed otherwise).
         new("record", "Record", "1013", Icon: "record", State: Recording, OnColor: "#c53030", OffColor: "#4a2a2a"),
 
