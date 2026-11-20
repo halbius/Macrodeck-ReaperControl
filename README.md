@@ -100,6 +100,10 @@ Drei beschreibbare Variablen für Macro Decks Slider-Widget (im Slider als Varia
 - **Undo:** eine Fader-Bewegung = ein Undo-Schritt, 0,7 s nach dem letzten Wert.
 - Technik: Das Plugin schreibt `ReaperControl/<Track|Item>VolumeSet` = `<Nr>|<dB>`; `ReaperControl_TrackState.lua` / `ReaperControl_ItemState.lua` setzen die Lautstärke (`D_VOL`) und veröffentlichen `<Track|Item>Volume`; `…VolumeCommit` setzt den Undo-Punkt. Die Kontext-Variante nutzt `ReaperControl_Context.lua`. Alle Scripts startet das Plugin selbst.
 
+## Markerfarbe ohne eigene Farbe
+
+Marker ohne eigene Farbe meldet das Webinterface ohne Farbe. Mit *Use marker color* nehmen „Go to marker“ und „Go to next/previous marker“ dafür die Farbe, in der REAPER sie zeichnet: Theme-Farbe `marker`, gelesen von `ReaperControl_ThemeColors.lua` (ExtState `ReaperControl/ThemeMarkerColor`). Das Script läuft nur kurz und nur, wenn der Wert fehlt – also einmal nach dem Start von REAPER oder des Plugins (`MarkerMonitor`, höchstens alle 30 s). Ohne Script: `#a00000` (REAPERs Standard-Rot). Nach einem Theme-Wechsel das Script einmal von Hand ausführen.
+
 ## Trigger „REAPER context changed“
 
 Ereignis für Macro Decks Trigger: feuert, wenn der zuletzt angeklickte Bereich in REAPER wechselt – *Tracks* (TCP/Mixer), *Items* oder *Envelopes* (`GetCursorContext2`). Im Trigger den Kontext wählen und z. B. die eingebaute Action *Change folder* daranhängen: ein Trigger pro Kontext und Ordner.

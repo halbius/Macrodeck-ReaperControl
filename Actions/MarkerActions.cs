@@ -95,7 +95,7 @@ public sealed class MarkerButtonAction(
             "While a marker filter is active, show the n-th matching marker instead of the marker with this ID."),
         ActionParameter.Toggle(UseColorParameter, "Use marker color",
             "Button in the marker's color: full color for the current marker, dimmed for the others. " +
-            "Markers without their own color look as if this were off.",
+            "Markers without their own color use REAPER's theme marker color (default red).",
             defaultValue: true)
     ];
 
@@ -123,7 +123,10 @@ public sealed class MarkerButtonAction(
         // "<name>" + line break + "ID: <id>", or just "ID: <id>" for an unnamed marker.
         var idLine = $"ID: {marker.Id.ToString(CultureInfo.InvariantCulture)}";
         var label = string.IsNullOrWhiteSpace(marker.Name) ? idLine : $"{marker.Name}\n{idLine}";
-        var color = UsesMarkerColor(parameters) ? MarkerColors.ToHex(marker.Color) : null;
+        // Markers without a color of their own: the color REAPER draws them in (theme, else red).
+        var color = UsesMarkerColor(parameters)
+            ? MarkerColors.ToHex(marker.Color) ?? markers.DefaultMarkerColor
+            : null;
 
         // The ids carry label and color: a new name or color is a new state, which Macro Deck adopts
         // with its default appearance - that is how label and color follow REAPER.

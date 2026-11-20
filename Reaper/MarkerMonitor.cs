@@ -89,6 +89,20 @@ public sealed class MarkerMonitor(
     private string? _signature;
     private bool _reachable = true;
 
+    // Color REAPER draws markers without a color of their own in (from the theme), published by
+    // ReaperControl_ThemeColors.lua. That script runs once when it is missing - after REAPER or the
+    // plugin started - not continuously: themes rarely change.
+    public const string ThemeColorsScript = "ReaperControl_ThemeColors.lua";
+    private const string FallbackMarkerColor = "#a00000"; // REAPER's default marker red
+    private static readonly TimeSpan ThemeScriptRetry = TimeSpan.FromSeconds(30);
+    private readonly ExtStateValue _themeMarkerColor = new("ReaperControl", "ThemeMarkerColor");
+    private string? _themeColor;
+    private long _themeScriptStarted = -ThemeScriptRetry.Ticks;
+    private bool _warnedThemeScript;
+
+    /// <summary>"#rrggbb" for markers without their own color: the theme's, else REAPER's default red.</summary>
+    public string DefaultMarkerColor => Volatile.Read(ref _themeColor) ?? FallbackMarkerColor;
+
     /// <summary>The last known markers, and keep polling them. Null until the first answer.</summary>
     public MarkerSnapshot? Get()
     {
@@ -141,6 +155,41 @@ public sealed class MarkerMonitor(
         }
     }
 
+    /// <summary>Reads the theme marker color from the reply; starts the script once if it is missing.</summary>
+    private async Task UpdateThemeColorAsync(ReaperWebClient client, string reply, CancellationToken cancellationToken)
+    {
+        var raw = ReaperResponseParser.ParseStates(reply, [_themeMarkerColor])
+            .GetValueOrDefault(_themeMarkerColor.Key, "");
+        if (raw.Length == 7 && raw[0] == '#')
+        {
+            Volatile.Write(ref _themeColor, raw.ToLowerInvariant());
+            return;
+        }
+
+        var now = DateTime.UtcNow.Ticks;
+        if (now - _themeScriptStarted < ThemeScriptRetry.Ticks)
+        {
+            return;
+        }
+
+        _themeScriptStarted = now;
+        var commandId = connection.Catalog.FindScriptCommandId(ThemeColorsScript, ReaperScriptFiles.InstallFolder);
+        if (commandId is null)
+        {
+            if (!_warnedThemeScript)
+            {
+                _warnedThemeScript = true;
+                logger.LogWarning("{Script} is not in REAPER's action list - markers without a color use {Color}. " +
+                                  "Install the scripts and run ReaperControl_Setup.lua once.",
+                    ThemeColorsScript, FallbackMarkerColor);
+            }
+
+            return;
+        }
+
+        await client.SendEncodedAsync([Uri.EscapeDataString(commandId)], cancellationToken);
+    }
+
     private async Task PollOnceAsync(CancellationToken cancellationToken)
     {
         var client = connection.Client;
@@ -152,7 +201,7 @@ public sealed class MarkerMonitor(
         string reply;
         try
         {
-            reply = await client.SendAsync(["MARKER", "TRANSPORT"], cancellationToken);
+            reply = await client.SendAsync(["MARKER", "TRANSPORT", _themeMarkerColor.Request], cancellationToken);
             if (!_reachable)
             {
                 _reachable = true;
@@ -171,6 +220,8 @@ public sealed class MarkerMonitor(
             return;
         }
 
+        await UpdateThemeColorAsync(client, reply, cancellationToken);
+
         var markers = ReaperResponseParser.ParseMarkers(reply)
             .Where(m => !m.IsRegion)
             .OrderBy(m => m.Start)
@@ -185,6 +236,7 @@ public sealed class MarkerMonitor(
         var snapshotNow = new MarkerSnapshot(markers, position, current);
         var signature = string.Join('\u0001', markers.Select(m => $"{m.Id}\u0002{m.Name}\u0002{m.Color}"))
                         + "\u0003" + current
+                        + "\u0003" + DefaultMarkerColor
                         + "\u0003" + snapshotNow.Previous(null)?.Id + "/" + snapshotNow.Next(null)?.Id;
         if (signature != _signature)
         {

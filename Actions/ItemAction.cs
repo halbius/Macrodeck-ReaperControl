@@ -40,7 +40,7 @@ public sealed class ItemAction(
         // "Item properties: Toggle mute" - check the id in your action list.
         // Red while the selected items are muted, dark grey-red otherwise.
         new("mute", "Mute", "40175", State: SelectedItems("ItemMute"), OnColor: "#c53030", OffColor: "#4a2a2a"),
-        new("loop-source", "Loop Source", "40636", State: SelectedItems("ItemLoop"), OnColor: "#306cc5", OffColor: "#3e4a5c"),
+        new("loop-source", "Loop Source", "40636", State: SelectedItems("ItemLoop"), Icon: "repeat", OnColor: "#3e4a5c", OffColor: "#3e4a5c"),
         new("lock", "Lock", "40687", Icon: "lock-open", IconWhenOn: "lock-closed", State: SelectedItems("ItemLock"), OnColor: "#b82323", OffColor: "#7c5151"),
         new("play-all-takes", "Play All Takes", "40437", State: SelectedItems("ItemPlayAllTakes"), OnColor: "#b6c530", OffColor: "#717547"),
         new("fx-chain", "FX Chain", "40638", State: SelectedItems("ItemFXChain"), OnColor: "#b6c530", OffColor: "#717547"),
@@ -52,7 +52,7 @@ public sealed class ItemAction(
             Options:
             [
                 new("item-time", "Item time", "42312", Ruler("1")),
-                new("item-hmsf", "Item H:M:S:F", "42314", Ruler("3")),
+                new("item-hmsf", "Item time H:M:S:F", "42314", Ruler("3")),
                 new("item-beats", "Item beats", "42315", Ruler("4")),
                 new("item-beats-minimal", "Item beats, minimal", "42359", Ruler("5")),
                 new("source-time", "Source time", "42313", Ruler("2")),

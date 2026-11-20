@@ -92,7 +92,10 @@ public sealed class NextPreviousMarkerAction(
                 ? $"ID: {marker.Id.ToString(CultureInfo.InvariantCulture)}"
                 : marker.Name;
             label = $"{heading}\n{markerText}";
-            color = UsesMarkerColor(parameters) ? MarkerColors.ToHex(marker.Color) : null;
+            // Markers without a color of their own: the color REAPER draws them in (theme, else red).
+            color = UsesMarkerColor(parameters)
+                ? MarkerColors.ToHex(marker.Color) ?? markers.DefaultMarkerColor
+                : null;
         }
 
         var background = color ?? "#2d3748";

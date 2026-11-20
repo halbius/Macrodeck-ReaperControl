@@ -49,19 +49,18 @@ public sealed class ReaperIntegration : IPluginIntegration, IConfigFlowProvider,
         var markerLogger = loggerFactory.CreateLogger<MarkerButtonAction>();
         Actions =
         [
-            new RunCommandAction(connection, stateMonitor, loggerFactory.CreateLogger<RunCommandAction>()),
+            new ItemAction(connection, stateMonitor, loggerFactory.CreateLogger<ItemAction>()),
+            new ItemEditorAction(connection, stateMonitor, loggerFactory.CreateLogger<ItemEditorAction>()),
             new LoadRenderPresetAction(connection, loggerFactory.CreateLogger<LoadRenderPresetAction>()),
             new MarkerButtonAction(connection, markerMonitor, markerFilter, markerLogger),
             new MarkerFilterAction(markerFilter, markerMonitor),
             new NextPreviousMarkerAction(connection, markerMonitor, markerFilter,
                 loggerFactory.CreateLogger<NextPreviousMarkerAction>()),
-            new ItemRulerAction(connection, stateMonitor, loggerFactory.CreateLogger<ItemRulerAction>()),
             new TransportAction(connection, stateMonitor, loggerFactory.CreateLogger<TransportAction>()),
-            new ItemAction(connection, stateMonitor, loggerFactory.CreateLogger<ItemAction>()),
+            new RunCommandAction(connection, stateMonitor, loggerFactory.CreateLogger<RunCommandAction>()),
             new TrackAction(connection, stateMonitor, loggerFactory.CreateLogger<TrackAction>()),
             new ToolbarAction(connection, stateMonitor, loggerFactory.CreateLogger<ToolbarAction>()),
 	        new ViewAction(connection, stateMonitor, loggerFactory.CreateLogger<ViewAction>()),
-            new ItemEditorAction(connection, stateMonitor, loggerFactory.CreateLogger<ItemEditorAction>()),
             .. FixedCommands.All.Select(c => new FixedCommandAction(c, connection, stateMonitor, fixedLogger))
         ];
     }

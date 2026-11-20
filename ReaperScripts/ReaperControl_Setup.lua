@@ -12,6 +12,7 @@ local SCRIPTS = {
   "ReaperControl_TrackState.lua",
   "ReaperControl_Timecode.lua",
   "ReaperControl_Context.lua",
+  "ReaperControl_ThemeColors.lua",
   "ReaperControl_LoadRenderPreset.lua",
 }
 
